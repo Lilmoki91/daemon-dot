@@ -12,26 +12,31 @@ jobs:
       - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
-      - name: 📤 Upload folder widget ke Pinata
+      - name: 📤 Upload folder widget (1 CID untuk semua fail)
         env:
           PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
           PINATA_SECRET_KEY: ${{ secrets.PINATA_SECRET_KEY }}
         run: |
-          echo "📁 Upload semua fail dalam folder widget/"
+          echo "📁 Upload folder widget/ sebagai SATU direktori"
           
-          cd widget
+          cd widget/
           
+          # Bina senarai fail untuk dihantar serentak
+          FILES=()
           for FILE in *; do
             if [ -f "$FILE" ]; then
-              echo "📤 Upload: $FILE"
-              curl -X POST "https://api.pinata.cloud/pinning/pinFileToIPFS" \
-                -H "pinata_api_key: $PINATA_API_KEY" \
-                -H "pinata_secret_api_key: $PINATA_SECRET_KEY" \
-                -F "file=@$FILE" \
-                -F "pinataMetadata={\"name\": \"$FILE\"}" \
-                -F "pinataOptions={\"cidVersion\": 1}"
-              echo ""
+              FILES+=("-F" "file=@$FILE")
+              echo "📤 Tambah: $FILE"
             fi
           done
           
-          echo "✅ Selesai! Semua fail dalam widget/ telah di-upload."
+          # Hantar SEMUA fail serentak ke Pinata
+          curl -X POST "https://api.pinata.cloud/pinning/pinFileToIPFS" \
+            -H "pinata_api_key: $PINATA_API_KEY" \
+            -H "pinata_secret_api_key: $PINATA_SECRET_KEY" \
+            "${FILES[@]}" \
+            -F "pinataMetadata={\"name\": \"widget\"}" \
+            -F "pinataOptions={\"cidVersion\": 1, \"wrapWithDirectory\": true}"
+          
+          echo ""
+          echo "✅ Selesai! Satu CID untuk seluruh folder widget/"
