@@ -1,6 +1,6 @@
 name: 📤 Deploy Widget ke IPFS via Pinata
 
-# 1. KAPAN ROBOT BEKERJA?
+# 1. KAPAN ROBOT BEKERJA?.
 # Setiap kali ada push ke branch main
 on:
   push:
