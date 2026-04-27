@@ -1,0 +1,25 @@
+name: 📤 Deploy Widget ke IPFS via Pinata
+
+# 1. KAPAN ROBOT BEKERJA?
+# Setiap kali ada push ke branch main
+on:
+  push:
+    branches: [main]
+
+# 2. APA YANG ROBOT LAKUKAN?
+jobs:
+  deploy-to-ipfs:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Langkah 1: Ambil kod terbaru dari repo
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v3
+
+      # Langkah 2: Upload folder ke Pinata & dapatkan CID baru
+      - name: 📤 Upload ke Pinata
+        uses: anantaramdas/ipfs-pinata-deploy-action@v2
+        with:
+          pinata_api_key: ${{ secrets.PINATA_API_KEY }}
+          pinata_secret_api_key: ${{ secrets.PINATA_SECRET_KEY }}
+          path: ./widget/   # <-- Folder yang nak di-upload
