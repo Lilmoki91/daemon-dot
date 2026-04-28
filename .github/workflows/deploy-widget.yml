@@ -1,46 +1,47 @@
-name: 📤 Deploy Widget ke Pinata
+name: 📤 Deploy Widget ke Pinata (Direktori)
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'widget/**'
 
 jobs:
-  deploy:
+  deploy-to-pinata:
     runs-on: ubuntu-latest
+    
     steps:
       - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
-      - name: 📤 Upload fail widget ke Pinata
+      - name: 📤 Upload folder widget ke Pinata
         env:
           PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
           PINATA_SECRET_KEY: ${{ secrets.PINATA_SECRET_KEY }}
         run: |
-          echo "📤 Mencari fail dalam folder widget/..."
+          echo "📤 Memuat naik folder widget/ ke Pinata..."
           
-          # Cari fail pertama dalam folder widget/
-          WIDGET_FILE=$(find widget/ -type f | head -n 1)
+          # Masuk ke folder widget
+          cd widget/
           
-          if [ -z "$WIDGET_FILE" ]; then
-            echo "❌ Tiada fail dijumpai dalam folder widget/"
-            exit 1
-          fi
+          # Bina senarai fail untuk dihantar serentak
+          FILES=()
+          for FILE in *; do
+            if [ -f "$FILE" ]; then
+              FILES+=("-F" "file=@$FILE")
+              echo "📄 Tambah: $FILE"
+            fi
+          done
           
-          FILENAME=$(basename "$WIDGET_FILE")
-          echo "📄 Fail dijumpai: $FILENAME"
-          
-          echo "📤 Memuat naik ke Pinata..."
+          # Hantar SEMUA fail serentak ke Pinata sebagai SATU direktori
           curl -X POST "https://api.pinata.cloud/pinning/pinFileToIPFS" \
             -H "pinata_api_key: $PINATA_API_KEY" \
             -H "pinata_secret_api_key: $PINATA_SECRET_KEY" \
-            -F "file=@$WIDGET_FILE;filename=$FILENAME" \
-            -F "pinataMetadata={\"name\": \"$FILENAME\"}" \
-            -F "pinataOptions={\"cidVersion\": 1}" \
+            "${FILES[@]}" \
+            -F "pinataMetadata={\"name\": \"widget-folder\"}" \
+            -F "pinataOptions={\"cidVersion\": 1, \"wrapWithDirectory\": true}" \
             -o response.json
           
-          echo "✅ Respons Pinata:"
+          # Papar respons
+          echo "✅ Respons dari Pinata:"
           cat response.json
           
           # Dapatkan CID
@@ -48,10 +49,12 @@ jobs:
           
           if [ -n "$CID" ]; then
             echo ""
-            echo "✅ BERJAYA!"
-            echo "📁 CID: $CID"
-            echo "🔗 URL: https://gateway.pinata.cloud/ipfs/$CID"
+            echo "📁 CID Folder: $CID"
+            echo "🔗 URL: https://gateway.pinata.cloud/ipfs/$CID/"
+            echo "🔗 URL: https://ipfs.io/ipfs/$CID/"
+            echo "🔗 URL: https://cloudflare-ipfs.com/ipfs/$CID/"
           else
-            echo "❌ Gagal dapatkan CID"
+            echo "❌ Gagal mendapatkan CID. Respons penuh:"
+            cat response.json
             exit 1
           fi
