@@ -12,46 +12,44 @@ jobs:
       - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
-      - name: 🌐 Setup IPFS dan Upload Folder
-        id: upload_to_ipfs
-        continue-on-error: true  # ← INI PENTING: Teruskan walaupun ada ralat
+      - name: 🌐 Setup IPFS + Upload + Pin ke Pinata
+        env:
+          PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
+          PINATA_SECRET_KEY: ${{ secrets.PINATA_SECRET_KEY }}
         run: |
+          # ==========================================
+          # 1. SETUP IPFS KUBO
+          # ==========================================
           echo "📁 Memasang IPFS Kubo..."
-          wget https://dist.ipfs.tech/kubo/v0.30.0/kubo_v0.30.0_linux-amd64.tar.gz
-          tar -xvzf kubo_v0.30.0_linux-amd64.tar.gz
+          wget -q https://dist.ipfs.tech/kubo/v0.30.0/kubo_v0.30.0_linux-amd64.tar.gz
+          tar -xzf kubo_v0.30.0_linux-amd64.tar.gz
           cd kubo
           sudo bash install.sh
           ipfs init
           ipfs daemon --offline &
           sleep 5
+          cd ..
           echo "✅ IPFS Kubo sedia"
 
-          echo "📁 Upload folder widget ke IPFS..."
+          # ==========================================
+          # 2. UPLOAD FOLDER WIDGET KE IPFS
+          # ==========================================
+          echo "📁 Upload folder widget/ ke IPFS..."
           ipfs add -r widget/ --cid-version 1 > ipfs_output.txt
           
           CID=$(tail -n 1 ipfs_output.txt | awk '{print $2}')
           echo "📁 CID Folder: $CID"
           
           if [ -z "$CID" ]; then
-            echo "❌ Ralat: CID kosong."
+            echo "❌ CID kosong!"
             exit 1
           fi
           
-          echo "CID=$CID" >> $GITHUB_OUTPUT
           echo "🔗 URL: https://ipfs.io/ipfs/$CID/"
 
-      - name: 📌 Pin CID di Pinata (Backup)
-        env:
-          PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
-          PINATA_SECRET_KEY: ${{ secrets.PINATA_SECRET_KEY }}
-        run: |
-          CID="${{ steps.upload_to_ipfs.outputs.CID }}"
-          
-          if [ -z "$CID" ]; then
-            echo "❌ CID kosong. Tak boleh pin."
-            exit 1
-          fi
-          
+          # ==========================================
+          # 3. PIN CID DI PINATA
+          # ==========================================
           echo "📌 Pin CID: $CID di Pinata..."
           
           RESPONSE=$(curl -s -X POST "https://api.pinata.cloud/pinning/pinByHash" \
@@ -63,8 +61,9 @@ jobs:
           echo "Respons: $RESPONSE"
           
           if echo "$RESPONSE" | grep -q "error"; then
-            echo "❌ Gagal pin: $RESPONSE"
+            echo "❌ Gagal pin CID di Pinata: $RESPONSE"
             exit 1
-          else
-            echo "✅ Berjaya dipin di Pinata!"
           fi
+          
+          echo "✅ BERJAYA! CID dipin di Pinata."
+          echo "📁 CID: $CID"
