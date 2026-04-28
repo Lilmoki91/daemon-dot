@@ -14,6 +14,7 @@ jobs:
 
       - name: 🌐 Setup IPFS dan Upload Folder
         id: upload_to_ipfs
+        continue-on-error: true  # ← INI PENTING: Teruskan walaupun ada ralat
         run: |
           echo "📁 Memasang IPFS Kubo..."
           wget https://dist.ipfs.tech/kubo/v0.30.0/kubo_v0.30.0_linux-amd64.tar.gz
@@ -26,20 +27,16 @@ jobs:
           echo "✅ IPFS Kubo sedia"
 
           echo "📁 Upload folder widget ke IPFS..."
-          # Tambah '--only-hash' untuk elak isu lstat jika ada, tapi kita guna cara biasa dulu
           ipfs add -r widget/ --cid-version 1 > ipfs_output.txt
           
-          # Dapatkan CID folder (baris terakhir dalam output)
           CID=$(tail -n 1 ipfs_output.txt | awk '{print $2}')
           echo "📁 CID Folder: $CID"
           
-          # Sahkan CID tidak kosong
           if [ -z "$CID" ]; then
-            echo "❌ Ralat: CID kosong. Proses dihentikan."
+            echo "❌ Ralat: CID kosong."
             exit 1
           fi
           
-          # Simpan CID untuk langkah seterusnya
           echo "CID=$CID" >> $GITHUB_OUTPUT
           echo "🔗 URL: https://ipfs.io/ipfs/$CID/"
 
@@ -48,23 +45,26 @@ jobs:
           PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
           PINATA_SECRET_KEY: ${{ secrets.PINATA_SECRET_KEY }}
         run: |
-          # Dapatkan CID dari langkah sebelumnya
           CID="${{ steps.upload_to_ipfs.outputs.CID }}"
-          echo "📌 Mencuba untuk pin CID: $CID di Pinata..."
           
-          # Hantar permintaan ke API Pinata dan tangkap respons penuh
+          if [ -z "$CID" ]; then
+            echo "❌ CID kosong. Tak boleh pin."
+            exit 1
+          fi
+          
+          echo "📌 Pin CID: $CID di Pinata..."
+          
           RESPONSE=$(curl -s -X POST "https://api.pinata.cloud/pinning/pinByHash" \
             -H "pinata_api_key: $PINATA_API_KEY" \
             -H "pinata_secret_api_key: $PINATA_SECRET_KEY" \
             -H "Content-Type: application/json" \
             -d "{\"hashToPin\": \"$CID\"}")
           
-          echo "Respons dari Pinata: $RESPONSE"
+          echo "Respons: $RESPONSE"
           
-          # Semak jika respons mengandungi ralat
           if echo "$RESPONSE" | grep -q "error"; then
-            echo "❌ Gagal pin CID. Ralat dari Pinata: $RESPONSE"
+            echo "❌ Gagal pin: $RESPONSE"
             exit 1
           else
-            echo "✅ CID berjaya dipin di Pinata!"
+            echo "✅ Berjaya dipin di Pinata!"
           fi
