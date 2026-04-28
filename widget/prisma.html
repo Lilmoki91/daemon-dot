@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>IPFS Mirror - GitHub Pages</title>
+</head>
+<body>
+    <div id="content">Loading mirror...</div>
+
+    <script>
+        const GITHUB_URL = "https://lilmoki91.github.io/daemon-dot/";
+        
+        async function mirror() {
+            try {
+                // Fetch dari GitHub Pages
+                let response = await fetch(GITHUB_URL);
+                let html = await response.text();
+                
+                // Ganti semua pautan relatif ke absolute (pilihan)
+                // html = html.replace(/href="\//g, `href="${GITHUB_URL}`);
+                
+                document.getElementById('content').innerHTML = html;
+                
+                // Jalankan script dalam content (optional)
+                let scripts = document.querySelectorAll('#content script');
+                scripts.forEach(oldScript => {
+                    let newScript = document.createElement('script');
+                    newScript.textContent = oldScript.textContent;
+                    document.body.appendChild(newScript);
+                });
+            } catch(err) {
+                document.getElementById('content').innerHTML = `<p>Error: ${err.message}</p>`;
+            }
+        }
+        
+        mirror();
+    </script>
+</body>
+</html>
