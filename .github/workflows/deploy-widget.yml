@@ -12,6 +12,14 @@ jobs:
       - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
+      - name: 🔍 Siasat struktur repo
+        run: |
+          echo "📁 Root repo:"
+          ls -la
+          echo ""
+          echo "📁 Cari folder widget:"
+          find . -name "widget" -type d 2>/dev/null || echo "❌ Folder widget tidak dijumpai!"
+
       - name: 🌐 Setup IPFS (Kubo)
         run: |
           echo "📁 Memasang IPFS Kubo..."
@@ -26,14 +34,20 @@ jobs:
 
       - name: 📤 Upload folder widget ke IPFS (Direct)
         run: |
-          echo "📁 Upload folder widget/ ke IPFS..."
+          echo "📁 Cari folder widget..."
+          WIDGET_PATH=$(find . -name "widget" -type d 2>/dev/null | head -n 1)
           
-          # Upload folder sebagai direktori
-          ipfs add -r widget/ --cid-version 1 --pin true > ipfs_output.txt
+          if [ -z "$WIDGET_PATH" ]; then
+            echo "❌ Folder widget TIDAK DIJUMPAI!"
+            exit 1
+          fi
           
-          # Dapatkan CID folder (baris terakhir)
+          echo "📁 Jumpa folder widget di: $WIDGET_PATH"
+          echo "📁 Upload ke IPFS..."
+          
+          ipfs add -r "$WIDGET_PATH" --cid-version 1 > ipfs_output.txt
+          
           CID=$(tail -n 1 ipfs_output.txt | awk '{print $2}')
-          
           echo "📁 CID Folder: $CID"
           echo "CID=$CID" >> $GITHUB_ENV
           
