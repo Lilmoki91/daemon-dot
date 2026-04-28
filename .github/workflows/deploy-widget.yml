@@ -1,60 +1,41 @@
-name: 📤 Deploy Widget ke Pinata (Direktori)
+name: 📤 Upload Widget ke Pinata
 
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy-to-pinata:
+  upload-to-pinata:
     runs-on: ubuntu-latest
     
     steps:
       - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
-      - name: 📤 Upload folder widget ke Pinata
+      - name: 📤 Upload setiap fail dalam widget/ ke Pinata
         env:
           PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
           PINATA_SECRET_KEY: ${{ secrets.PINATA_SECRET_KEY }}
         run: |
-          echo "📤 Memuat naik folder widget/ ke Pinata..."
+          echo "📁 Memproses folder widget/"
           
-          # Masuk ke folder widget
-          cd widget/
-          
-          # Bina senarai fail untuk dihantar serentak
-          FILES=()
-          for FILE in *; do
+          for FILE in widget/*; do
             if [ -f "$FILE" ]; then
-              FILES+=("-F" "file=@$FILE")
-              echo "📄 Tambah: $FILE"
+              FILENAME=$(basename "$FILE")
+              echo "📤 Upload: $FILENAME"
+              
+              curl -X POST "https://api.pinata.cloud/pinning/pinFileToIPFS" \
+                -H "pinata_api_key: $PINATA_API_KEY" \
+                -H "pinata_secret_api_key: $PINATA_SECRET_KEY" \
+                -F "file=@$FILE" \
+                -F "pinataMetadata={\"name\": \"$FILENAME\"}" \
+                -F "pinataOptions={\"cidVersion\": 1}" \
+                -o "response_$FILENAME.json"
+              
+              CID=$(grep -o '"IpfsHash":"[^"]*"' "response_$FILENAME.json" | cut -d'"' -f4)
+              echo "✅ $FILENAME → CID: $CID"
+              echo ""
             fi
           done
           
-          # Hantar SEMUA fail serentak ke Pinata sebagai SATU direktori
-          curl -X POST "https://api.pinata.cloud/pinning/pinFileToIPFS" \
-            -H "pinata_api_key: $PINATA_API_KEY" \
-            -H "pinata_secret_api_key: $PINATA_SECRET_KEY" \
-            "${FILES[@]}" \
-            -F "pinataMetadata={\"name\": \"widget-folder\"}" \
-            -F "pinataOptions={\"cidVersion\": 1, \"wrapWithDirectory\": true}" \
-            -o response.json
-          
-          # Papar respons
-          echo "✅ Respons dari Pinata:"
-          cat response.json
-          
-          # Dapatkan CID
-          CID=$(grep -o '"IpfsHash":"[^"]*"' response.json | cut -d'"' -f4)
-          
-          if [ -n "$CID" ]; then
-            echo ""
-            echo "📁 CID Folder: $CID"
-            echo "🔗 URL: https://gateway.pinata.cloud/ipfs/$CID/"
-            echo "🔗 URL: https://ipfs.io/ipfs/$CID/"
-            echo "🔗 URL: https://cloudflare-ipfs.com/ipfs/$CID/"
-          else
-            echo "❌ Gagal mendapatkan CID. Respons penuh:"
-            cat response.json
-            exit 1
-          fi
+          echo "🎉 Selesai! Semua fail telah di-upload."
