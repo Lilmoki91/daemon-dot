@@ -1,28 +1,57 @@
-name: 📤 Deploy ke IPFS via Pinata
+name: 📤 Deploy Widget ke Pinata
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'widget/**'
 
 jobs:
-  deploy-to-ipfs:
+  deploy:
     runs-on: ubuntu-latest
-    
     steps:
       - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
-      - name: 📤 Upload index.html ke Pinata
+      - name: 📤 Upload fail widget ke Pinata
         env:
           PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
           PINATA_SECRET_KEY: ${{ secrets.PINATA_SECRET_KEY }}
         run: |
-          echo "📤 Upload: index.html"
+          echo "📤 Mencari fail dalam folder widget/..."
+          
+          # Cari fail pertama dalam folder widget/
+          WIDGET_FILE=$(find widget/ -type f | head -n 1)
+          
+          if [ -z "$WIDGET_FILE" ]; then
+            echo "❌ Tiada fail dijumpai dalam folder widget/"
+            exit 1
+          fi
+          
+          FILENAME=$(basename "$WIDGET_FILE")
+          echo "📄 Fail dijumpai: $FILENAME"
+          
+          echo "📤 Memuat naik ke Pinata..."
           curl -X POST "https://api.pinata.cloud/pinning/pinFileToIPFS" \
             -H "pinata_api_key: $PINATA_API_KEY" \
             -H "pinata_secret_api_key: $PINATA_SECRET_KEY" \
-            -F "file=@index.html" \
-            -F "pinataMetadata={\"name\": \"index.html\"}" \
-            -F "pinataOptions={\"cidVersion\": 1}"
-          echo ""
-          echo "✅ Selesai!"
+            -F "file=@$WIDGET_FILE;filename=$FILENAME" \
+            -F "pinataMetadata={\"name\": \"$FILENAME\"}" \
+            -F "pinataOptions={\"cidVersion\": 1}" \
+            -o response.json
+          
+          echo "✅ Respons Pinata:"
+          cat response.json
+          
+          # Dapatkan CID
+          CID=$(grep -o '"IpfsHash":"[^"]*"' response.json | cut -d'"' -f4)
+          
+          if [ -n "$CID" ]; then
+            echo ""
+            echo "✅ BERJAYA!"
+            echo "📁 CID: $CID"
+            echo "🔗 URL: https://gateway.pinata.cloud/ipfs/$CID"
+          else
+            echo "❌ Gagal dapatkan CID"
+            exit 1
+          fi
