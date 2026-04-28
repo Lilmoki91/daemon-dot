@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+    
+    <div id="out"></div>
+
+    <script>
+        const GATEWAY = "https://ipfs.io/ipfs/";
+        
+        const files = [
+            "cid-html.txt", "cid-css.txt", "cid-js.txt", "cid-json.txt",
+            "cid-python.txt", "cid-go.txt", "cid-pdf.txt", "cid-txt.txt",
+            "cid-wav.txt", "cid-mp3.txt", "cid-png.txt", "cid-jpg.txt"
+        ];
+        
+        async function load() {
+            let html = '';
+            for (let f of files) {
+                try {
+                    let r = await fetch(f + '?t=' + Date.now());
+                    if (r.ok) {
+                        let cid = (await r.text()).trim();
+                        if (cid) {
+                            let url = GATEWAY + cid;
+                            
+                            try {
+                                let res = await fetch(url);
+                                let content = await res.text();
+                                
+                                html += `<div style="">
+                                    <h3>${f}</h3>
+                                    <pre>${escapeHtml(content)}</pre>
+                                </div>`;
+                            } catch(e) {
+                                html += `<div><h3>${f}</h3><p>Error: ${e.message}</p></div>`;
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+            document.getElementById('out').innerHTML = html || '';
+        }
+        
+        function escapeHtml(text) {
+            let div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        load();
+    </script>
+</body>
+</html>
