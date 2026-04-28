@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPFS Gateway Redirect</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            color: #e2e8f0;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            max-width: 90%;
+            width: 500px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(16, 185, 129, 0.3);
+            border-radius: 50%;
+            border-top-color: #10b981;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #10b981;
+        }
+        .cid-info {
+            background: #0f172a;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            font-family: monospace;
+            font-size: 0.8rem;
+            word-break: break-all;
+            color: #94a3b8;
+        }
+        .gateway-select {
+            margin: 1rem 0;
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #10b981;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+        .error {
+            background: #7f1d1d;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h1>🪐 Mengakses IPFS Gateway...</h1>
+        <p>Sedang mendapatkan kandungan dari IPFS</p>
+        <div class="cid-info" id="cidInfo">Loading CID...</div>
+
+        <div class="gateway-select">
+            <span>Pilih gateway:</span>
+            <button onclick="setGateway('https://ipfs.io/ipfs/')">ipfs.io</button>
+            <button onclick="setGateway('https://gateway.pinata.cloud/ipfs/')">Pinata</button>
+            <button onclick="setGateway('https://dweb.link/ipfs/')">dweb.link</button>
+            <button onclick="setGateway('https://cf-ipfs.com/ipfs/')">Cloudflare</button>
+        </div>
+
+        <p style="font-size: 0.75rem; margin-top: 1rem;">
+            🔄 URL ini kekal walaupun CID berubah<br>
+            📝 Edit <code>cid.txt</code> di GitHub untuk update kandungan
+        </p>
+    </div>
+
+    <script>
+        let currentGateway = localStorage.getItem('preferredGateway') || 'https://ipfs.io/ipfs/';
+
+        function setGateway(gateway) {
+            currentGateway = gateway;
+            localStorage.setItem('preferredGateway', gateway);
+            loadAndRedirect();
+        }
+
+        async function loadAndRedirect() {
+            try {
+                // Baca CID dari cid.txt
+                const response = await fetch('cid.txt?' + Date.now());
+                if (!response.ok) throw new Error('cid.txt not found');
+                
+                let cid = await response.text();
+                cid = cid.trim();
+                
+                document.getElementById('cidInfo').innerHTML = `📦 CID: <strong>${cid}</strong><br>🚪 Gateway: ${currentGateway}`;
+                
+                // Redirect ke IPFS gateway
+                const targetUrl = currentGateway + cid;
+                console.log('Redirecting to:', targetUrl);
+                
+                // Redirect selepas 2 saat (bagi pengguna nampak info)
+                setTimeout(() => {
+                    window.location.replace(targetUrl);
+                }, 2000);
+                
+            } catch (error) {
+                document.getElementById('cidInfo').innerHTML = '<span style="color:#f87171;">❌ Gagal membaca cid.txt</span>';
+                document.querySelector('.spinner').style.display = 'none';
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.innerHTML = `
+                    <strong>⚠️ Error:</strong> Fail <code>cid.txt</code> tidak dijumpai.<br><br>
+                    <strong>Penyelesaian:</strong><br>
+                    1. Pastikan fail <code>cid.txt</code> wujud di repo GitHub<br>
+                    2. Isi dengan CID sahaja (contoh: Qm...)<br>
+                    3. Tunggu GitHub Pages deploy (1-2 minit)
+                `;
+                document.querySelector('.container').appendChild(errorDiv);
+            }
+        }
+
+        loadAndRedirect();
+    </script>
+</body>
+</html>
