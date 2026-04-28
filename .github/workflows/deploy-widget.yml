@@ -12,15 +12,8 @@ jobs:
       - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
-      - name: 🔍 Siasat struktur repo
-        run: |
-          echo "📁 Root repo:"
-          ls -la
-          echo ""
-          echo "📁 Cari folder widget:"
-          find . -name "widget" -type d 2>/dev/null || echo "❌ Folder widget tidak dijumpai!"
-
-      - name: 🌐 Setup IPFS (Kubo)
+      - name: 🌐 Setup IPFS dan Upload Folder
+        id: upload_to_ipfs
         run: |
           echo "📁 Memasang IPFS Kubo..."
           wget https://dist.ipfs.tech/kubo/v0.30.0/kubo_v0.30.0_linux-amd64.tar.gz
@@ -32,25 +25,22 @@ jobs:
           sleep 5
           echo "✅ IPFS Kubo sedia"
 
-      - name: 📤 Upload folder widget ke IPFS (Direct)
-        run: |
-          echo "📁 Cari folder widget..."
-          WIDGET_PATH=$(find . -name "widget" -type d 2>/dev/null | head -n 1)
+          echo "📁 Upload folder widget ke IPFS..."
+          # Tambah '--only-hash' untuk elak isu lstat jika ada, tapi kita guna cara biasa dulu
+          ipfs add -r widget/ --cid-version 1 > ipfs_output.txt
           
-          if [ -z "$WIDGET_PATH" ]; then
-            echo "❌ Folder widget TIDAK DIJUMPAI!"
+          # Dapatkan CID folder (baris terakhir dalam output)
+          CID=$(tail -n 1 ipfs_output.txt | awk '{print $2}')
+          echo "📁 CID Folder: $CID"
+          
+          # Sahkan CID tidak kosong
+          if [ -z "$CID" ]; then
+            echo "❌ Ralat: CID kosong. Proses dihentikan."
             exit 1
           fi
           
-          echo "📁 Jumpa folder widget di: $WIDGET_PATH"
-          echo "📁 Upload ke IPFS..."
-          
-          ipfs add -r "$WIDGET_PATH" --cid-version 1 > ipfs_output.txt
-          
-          CID=$(tail -n 1 ipfs_output.txt | awk '{print $2}')
-          echo "📁 CID Folder: $CID"
-          echo "CID=$CID" >> $GITHUB_ENV
-          
+          # Simpan CID untuk langkah seterusnya
+          echo "CID=$CID" >> $GITHUB_OUTPUT
           echo "🔗 URL: https://ipfs.io/ipfs/$CID/"
 
       - name: 📌 Pin CID di Pinata (Backup)
@@ -58,13 +48,23 @@ jobs:
           PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
           PINATA_SECRET_KEY: ${{ secrets.PINATA_SECRET_KEY }}
         run: |
-          echo "📌 Pin CID ${{ env.CID }} di Pinata..."
+          # Dapatkan CID dari langkah sebelumnya
+          CID="${{ steps.upload_to_ipfs.outputs.CID }}"
+          echo "📌 Mencuba untuk pin CID: $CID di Pinata..."
           
-          curl -X POST "https://api.pinata.cloud/pinning/pinByHash" \
+          # Hantar permintaan ke API Pinata dan tangkap respons penuh
+          RESPONSE=$(curl -s -X POST "https://api.pinata.cloud/pinning/pinByHash" \
             -H "pinata_api_key: $PINATA_API_KEY" \
             -H "pinata_secret_api_key: $PINATA_SECRET_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"hashToPin\": \"${{ env.CID }}\"}"
+            -d "{\"hashToPin\": \"$CID\"}")
           
-          echo ""
-          echo "✅ CID dipin di Pinata!"
+          echo "Respons dari Pinata: $RESPONSE"
+          
+          # Semak jika respons mengandungi ralat
+          if echo "$RESPONSE" | grep -q "error"; then
+            echo "❌ Gagal pin CID. Ralat dari Pinata: $RESPONSE"
+            exit 1
+          else
+            echo "✅ CID berjaya dipin di Pinata!"
+          fi
