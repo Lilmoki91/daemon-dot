@@ -2,10 +2,9 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title></title>
+    <title>CID Platform - Multi Format</title>
 </head>
 <body>
-    
     <div id="out"></div>
 
     <script>
@@ -14,35 +13,80 @@
         const files = [
             "cid-html.txt", "cid-css.txt", "cid-js.txt", "cid-json.txt",
             "cid-python.txt", "cid-go.txt", "cid-pdf.txt", "cid-txt.txt",
-            "cid-wav.txt", "cid-mp3.txt", "cid-png.txt", "cid-jpg.txt"
+            "cid-png.txt", "cid-jpg.txt", "cid-wav.txt", "cid-ogg.txt"
         ];
         
         async function load() {
             let html = '';
+            
             for (let f of files) {
                 try {
                     let r = await fetch(f + '?t=' + Date.now());
-                    if (r.ok) {
-                        let cid = (await r.text()).trim();
-                        if (cid) {
-                            let url = GATEWAY + cid;
-                            
-                            try {
-                                let res = await fetch(url);
-                                let content = await res.text();
-                                
-                                html += `<div style="">
-                                    <h3>${f}</h3>
-                                    <pre>${escapeHtml(content)}</pre>
-                                </div>`;
-                            } catch(e) {
-                                html += `<div><h3>${f}</h3><p>Error: ${e.message}</p></div>`;
-                            }
-                        }
+                    if (!r.ok) continue;
+                    
+                    let cid = (await r.text()).trim();
+                    if (!cid) continue;
+                    
+                    let url = GATEWAY + cid;
+                    
+                    // 1. HTML - RENDER terus
+                    if (f === 'cid-html.txt') {
+                        let res = await fetch(url);
+                        let content = await res.text();
+                        document.open();
+                        document.write(content);
+                        document.close();
+                        return;
                     }
-                } catch(e) {}
+                    
+                    // 2. CSS
+                    if (f === 'cid-css.txt') {
+                        let res = await fetch(url);
+                        let css = await res.text();
+                        let style = document.createElement('style');
+                        style.textContent = css;
+                        document.head.appendChild(style);
+                        html += `<div><h3>✅ CSS loaded</h3></div>`;
+                        continue;
+                    }
+                    
+                    // 3. JavaScript
+                    if (f === 'cid-js.txt') {
+                        let res = await fetch(url);
+                        let js = await res.text();
+                        let script = document.createElement('script');
+                        script.textContent = js;
+                        document.body.appendChild(script);
+                        html += `<div><h3>✅ JavaScript loaded</h3></div>`;
+                        continue;
+                    }
+                    
+                    // 4. Gambar (PNG, JPG)
+                    if (f.includes('png') || f.includes('jpg')) {
+                        html += `<div><h3>${f}</h3><img src="${url}" style="max-width:100%"></div>`;
+                        continue;
+                    }
+                    
+                    // 5. Audio (WAV, OGG)
+                    if (f.includes('wav') || f.includes('ogg')) {
+                        html += `<div><h3>${f}</h3><audio controls src="${url}"></audio></div>`;
+                        continue;
+                    }
+                    
+                    // 6. Lain-lain (JSON, Python, Go, PDF, TXT) - papar sebagai teks
+                    let res = await fetch(url);
+                    let content = await res.text();
+                    html += `<div style="border:1px solid #ccc; margin:20px 0; padding:10px;">
+                        <h3>${f}</h3>
+                        <pre>${escapeHtml(content)}</pre>
+                    </div>`;
+                    
+                } catch(e) {
+                    html += `<div><h3>${f}</h3><p>Error: ${e.message}</p></div>`;
+                }
             }
-            document.getElementById('out').innerHTML = html || '';
+            
+            document.getElementById('out').innerHTML = html || '<p>Tiada CID.</p>';
         }
         
         function escapeHtml(text) {
