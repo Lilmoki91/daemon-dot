@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>IPFS Controller - Universal Repo Access</title>
+</head>
+<body>
+    <div id="content">Loading...</div>
+
+    <script>
+        // ==============================================
+        // KONFIGURASI
+        // ==============================================
+        const REPO_OWNER = "Lilmoki91";
+        const REPO_NAME = "cryptorian-world-my";
+        const BRANCH = "main";
+        
+        const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/`;
+        const API_BASE = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
+        
+        // ==============================================
+        // DAPATKAN PATH DARI URL
+        // ==============================================
+        function getRequestedPath() {
+            // URL macam: https://ipfs.io/ipfs/Qm.../satoshi-Ai1.html
+            // Atau: https://ipfs.io/ipfs/Qm.../css/style.css
+            const url = window.location.pathname;
+            const parts = url.split('/');
+            
+            // Cari CID (part selepas /ipfs/)
+            let startIndex = -1;
+            for (let i = 0; i < parts.length; i++) {
+                if (parts[i] === 'ipfs') {
+                    startIndex = i + 2; // Selepas CID
+                    break;
+                }
+            }
+            
+            if (startIndex === -1 || startIndex >= parts.length) {
+                return ''; // Path kosong → index.html
+            }
+            
+            // Baki adalah path fail
+            const requestedPath = parts.slice(startIndex).join('/');
+            return requestedPath || '';
+        }
+        
+        // ==============================================
+        // BACA FAIL DARI GITHUB
+        // ==============================================
+        async function fetchFromGitHub(path) {
+            // 1. Cuba raw dulu
+            let rawUrl = RAW_BASE + path;
+            try {
+                let rawRes = await fetch(rawUrl);
+                if (rawRes.ok) {
+                    return { content: await rawRes.text(), fromRaw: true };
+                }
+            } catch(e) {}
+            
+            // 2. Fallback ke API
+            let apiUrl = `${API_BASE}/${path}`;
+            let apiRes = await fetch(apiUrl, {
+                headers: { "Accept": "application/vnd.github.v3+json" }
+            });
+            if (!apiRes.ok) return null;
+            let data = await apiRes.json();
+            return { content: atob(data.content), fromRaw: false };
+        }
+        
+        // ==============================================
+        // RENDER KANDUNGAN IKUT JENIS
+        // ==============================================
+        function renderContent(content, path) {
+            const ext = path.split('.').pop().toLowerCase();
+            
+            // HTML – render terus
+            if (ext === 'html') {
+                document.open();
+                document.write(content);
+                document.close();
+                return;
+            }
+            
+            // CSS – inject
+            if (ext === 'css') {
+                const style = document.createElement('style');
+                style.textContent = content;
+                document.head.appendChild(style);
+                document.getElementById('content').innerHTML = '<p>✅ CSS loaded.</p>';
+                return;
+            }
+            
+            // JavaScript – inject
+            if (ext === 'js') {
+                const script = document.createElement('script');
+                script.textContent = content;
+                document.body.appendChild(script);
+                document.getElementById('content').innerHTML = '<p>✅ JavaScript loaded.</p>';
+                return;
+            }
+            
+            // JSON – pretty print
+            if (ext === 'json') {
+                try {
+                    const json = JSON.parse(content);
+                    document.getElementById('content').innerHTML = `<pre>${JSON.stringify(json, null, 2)}</pre>`;
+                } catch(e) {
+                    document.getElementById('content').innerHTML = `<pre>${escapeHtml(content)}</pre>`;
+                }
+                return;
+            }
+            
+            // Teks biasa
+            document.getElementById('content').innerHTML = `<pre>${escapeHtml(content)}</pre>`;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ==============================================
+        // LOAD PAGE
+        // ==============================================
+        async function load() {
+            const requestedPath = getRequestedPath();
+            const finalPath = requestedPath || 'index.html';
+            
+            document.getElementById('content').innerHTML = `Memuatkan: ${finalPath}...`;
+            
+            try {
+                const result = await fetchFromGitHub(finalPath);
+                if (!result) throw new Error('Fail tidak dijumpai');
+                
+                renderContent(result.content, finalPath);
+            } catch (err) {
+                document.getElementById('content').innerHTML = `
+                    <h2>❌ Ralat</h2>
+                    <p>Fail <code>${finalPath}</code> tidak dijumpai di repo.</p>
+                    <p><a href="https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${BRANCH}/${finalPath}" target="_blank">Semak di GitHub</a></p>
+                `;
+            }
+        }
+        
+        load();
+    </script>
+</body>
+</html>
