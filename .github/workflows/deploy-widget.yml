@@ -34,6 +34,9 @@ jobs:
               
               CID=$(grep -o '"IpfsHash":"[^"]*"' "response_$FILENAME.json" | cut -d'"' -f4)
               echo "✅ $FILENAME → CID: $CID"
+              echo "🔗 URL: https://ipfs.io/ipfs/$CID"
+              echo "🔗 URL: https://cloudflare-ipfs.com/ipfs/$CID"
+              echo "🔗 URL: https://gateway.pinata.cloud/ipfs/$CID"
               echo ""
             fi
           done
