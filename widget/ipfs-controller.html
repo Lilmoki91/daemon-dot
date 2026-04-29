@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>IPFS Controller - Platform</title>
+</head>
+<body>
+    <div id="out"></div>
+
+    <script>
+        const GATEWAY = "https://ipfs.io/ipfs/";
+        const REPO_API = "https://api.github.com/repos/lilmoki91/daemon-dot/contents";
+        
+        const files = [
+            "cid-html.txt", "cid-css.txt", "cid-js.txt", "cid-json.txt",
+            "cid-python.txt", "cid-go.txt", "cid-pdf.txt", "cid-txt.txt",
+            "cid-png.txt", "cid-jpg.txt", "cid-wav.txt", "cid-ogg.txt"
+        ];
+        
+        async function fetchCID(filename) {
+            try {
+                let url = `${REPO_API}/${filename}`;
+                let res = await fetch(url, {
+                    headers: {"Accept": "application/vnd.github.v3+json"}
+                });
+                if (!res.ok) return null;
+                let data = await res.json();
+                return atob(data.content);
+            } catch(e) {
+                return null;
+            }
+        }
+        
+        async function load() {
+            let html = '';
+            
+            for (let f of files) {
+                let cid = await fetchCID(f);
+                if (!cid) continue;
+                
+                let url = GATEWAY + cid;
+                
+                if (f === 'cid-html.txt') {
+                    let res = await fetch(url);
+                    let content = await res.text();
+                    document.open();
+                    document.write(content);
+                    document.close();
+                    return;
+                }
+                
+                if (f === 'cid-css.txt') {
+                    let res = await fetch(url);
+                    let css = await res.text();
+                    let style = document.createElement('style');
+                    style.textContent = css;
+                    document.head.appendChild(style);
+                    html += `<div><h3>✅ CSS loaded</h3></div>`;
+                    continue;
+                }
+                
+                if (f === 'cid-js.txt') {
+                    let res = await fetch(url);
+                    let js = await res.text();
+                    let script = document.createElement('script');
+                    script.textContent = js;
+                    document.body.appendChild(script);
+                    html += `<div><h3>✅ JavaScript loaded</h3></div>`;
+                    continue;
+                }
+                
+                if (f.includes('png') || f.includes('jpg')) {
+                    html += `<div><h3>${f}</h3><img src="${url}" style="max-width:100%"></div>`;
+                    continue;
+                }
+                
+                if (f.includes('wav') || f.includes('ogg')) {
+                    html += `<div><h3>${f}</h3><audio controls src="${url}"></audio></div>`;
+                    continue;
+                }
+                
+                let res = await fetch(url);
+                let content = await res.text();
+                html += `<div style="border:1px solid #ccc; margin:20px 0; padding:10px;">
+                    <h3>${f}</h3>
+                    <pre>${escapeHtml(content)}</pre>
+                </div>`;
+            }
+            
+            document.getElementById('out').innerHTML = html || '<p>Tiada CID.</p>';
+        }
+        
+        function escapeHtml(text) {
+            let div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        load();
+    </script>
+</body>
+</html>
