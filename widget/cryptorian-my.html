@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>IPFS Controller - Direct Repo Access</title>
+</head>
+<body>
+    <div id="out"></div>
+
+    <script>
+        // Konfigurasi untuk repo cryptorian-world-my
+        const REPO_OWNER = "Lilmoki91";
+        const REPO_NAME = "cryptorian-world-my";
+        const BRANCH = "main";
+        
+        // API GitHub
+        const REPO_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
+        const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/`;
+        
+        // Senarai fail yang ingin diakses terus dari repo (TANPA CID)
+        const files = [
+            "index.html",
+            "style.css", 
+            "script.js",
+            "data.json",
+            "README.md",
+            "LICENSE"
+        ];
+        
+        async function fetchFileContent(filename) {
+            try {
+                // Cuba ambil dari raw GitHub dulu (cepat)
+                let rawUrl = RAW_BASE + filename;
+                let rawRes = await fetch(rawUrl);
+                if (rawRes.ok) {
+                    return await rawRes.text();
+                }
+                
+                // Fallback ke API jika raw gagal
+                let apiUrl = `${REPO_API}/${filename}`;
+                let apiRes = await fetch(apiUrl, {
+                    headers: {"Accept": "application/vnd.github.v3+json"}
+                });
+                if (!apiRes.ok) return null;
+                let data = await apiRes.json();
+                return atob(data.content);
+            } catch(e) {
+                console.log(`Gagal baca: ${filename}`, e);
+                return null;
+            }
+        }
+        
+        function getExtension(filename) {
+            return filename.split('.').pop().toLowerCase();
+        }
+        
+        async function load() {
+            let output = '';
+            let success = 0;
+            
+            for (let file of files) {
+                let content = await fetchFileContent(file);
+                if (!content) continue;
+                success++;
+                
+                let ext = getExtension(file);
+                
+                // HTML - render terus
+                if (ext === 'html') {
+                    document.open();
+                    document.write(content);
+                    document.close();
+                    return;
+                }
+                
+                // CSS - inject
+                if (ext === 'css') {
+                    let style = document.createElement('style');
+                    style.textContent = content;
+                    document.head.appendChild(style);
+                    continue;
+                }
+                
+                // JavaScript - inject
+                if (ext === 'js') {
+                    let script = document.createElement('script');
+                    script.textContent = content;
+                    document.body.appendChild(script);
+                    continue;
+                }
+                
+                // JSON - format cantik
+                if (ext === 'json') {
+                    try {
+                        let json = JSON.parse(content);
+                        output += `\n📄 ${file}:\n${JSON.stringify(json, null, 2)}\n`;
+                    } catch(e) {
+                        output += `\n📄 ${file}:\n${content}\n`;
+                    }
+                    continue;
+                }
+                
+                // Teks biasa
+                output += `\n📄 ${file}:\n${content}\n`;
+            }
+            
+            if (output) {
+                document.getElementById('out').innerHTML = `<pre style="background:#1e293b; color:#e2e8f0; padding:1rem; overflow-x:auto;">${escapeHtml(output)}</pre>
+                <p>✅ ${success}/${files.length} fail berjaya dimuatkan dari repo ${REPO_NAME}</p>`;
+            } else {
+                document.getElementById('out').innerHTML = `<p>❌ Tiada fail dijumpai dalam repo ${REPO_NAME}.<br>
+                Pastikan repo wujud dan nama fail betul.</p>`;
+            }
+        }
+        
+        function escapeHtml(text) {
+            let div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        load();
+    </script>
+</body>
+</html>
