@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>IPFS Controller - Direct Repo Access Branch</title>
+</head>
+<body>
+    <div id="out"></div>
+
+    <script>
+        // Konfigurasi repo
+        const REPO_OWNER = "Lilmoki91";
+        const REPO_NAME = "cryptorian-world-my";
+        const BRANCH = "main";
+        
+        const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/`;
+        const API_CONTENTS = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
+        
+        // Fail yang akan dicari (boleh tambah)
+        const targetFiles = [
+            "index.html", "menu.html", "home.html", "main.html",
+            "style.css", "script.js", "data.json"
+        ];
+        
+        async function fetchWithFallback(path) {
+            // Cuba raw dulu
+            let rawRes = await fetch(RAW_BASE + path);
+            if (rawRes.ok) return await rawRes.text();
+            
+            // Cuba API
+            let apiRes = await fetch(`${API_CONTENTS}/${path}`, {
+                headers: {"Accept": "application/vnd.github.v3+json"}
+            });
+            if (!apiRes.ok) return null;
+            let data = await apiRes.json();
+            return atob(data.content);
+        }
+        
+        async function scanAndLoad() {
+            let htmlContent = null;
+            let cssContent = null;
+            let jsContent = null;
+            
+            // Cari HTML
+            for (let file of targetFiles) {
+                let content = await fetchWithFallback(file);
+                if (content && (file.endsWith('.html') || file.endsWith('.htm'))) {
+                    htmlContent = content;
+                    break;
+                }
+                if (content && file.endsWith('.css')) cssContent = content;
+                if (content && file.endsWith('.js')) jsContent = content;
+            }
+            
+            // Render HTML jika ada
+            if (htmlContent) {
+                document.open();
+                document.write(htmlContent);
+                document.close();
+                
+                // Inject CSS tambahan
+                if (cssContent) {
+                    let style = document.createElement('style');
+                    style.textContent = cssContent;
+                    document.head.appendChild(style);
+                }
+                
+                // Inject JS tambahan
+                if (jsContent) {
+                    let script = document.createElement('script');
+                    script.textContent = jsContent;
+                    document.body.appendChild(script);
+                }
+                return;
+            }
+            
+            // Jika tiada HTML, senarai fail
+            let list = await fetch(API_CONTENTS, {
+                headers: {"Accept": "application/vnd.github.v3+json"}
+            });
+            let files = await list.json();
+            let output = '<h2>📁 Kandungan Repo</h2><ul>';
+            for (let file of files) {
+                output += `<li><a href="${RAW_BASE + file.name}" target="_blank">${file.name}</a></li>`;
+            }
+            output += '</ul>';
+            document.getElementById('out').innerHTML = output;
+        }
+        
+        scanAndLoad();
+    </script>
+</body>
+</html>
