@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ICA - IPFS Controller Access</title>
+    <style>
+        body { background: #0a0c10; color: #e0e0e0; font-family: monospace; padding: 2rem; }
+        .success { color: #10b981; }
+        .error { color: #f87171; }
+        pre { background: #1e293b; padding: 1rem; overflow-x: auto; border-radius: 12px; }
+    </style>
+</head>
+<body>
+    <div id="app">⟳ ICA Gateway Active...</div>
+
+    <script>
+        // ==============================================
+        // KONFIGURASI GATEWAY (MULTI-GATEWAY)
+        // ==============================================
+        const GATEWAYS = [
+            "https://dweb.link/ipfs/",
+            "https://cf-ipfs.com/ipfs/",
+            "https://ipfs.io/ipfs/"
+        ];
+
+        // ==============================================
+        // PINATA DEDICATED GATEWAY (DENGAN TOKEN)
+        // ==============================================
+        const PINATA_GATEWAY = "https://black-fancy-cod-154.mypinata.cloud/ipfs/";
+        const PINATA_TOKEN = "-K-dkPXY7jYEIWA8AowY0N4mlio8Pmt1tyzJtlAHZXi6dvMn_MOSzJKwwVPG-Geh";
+
+        // ==============================================
+        // FUNGSI BACA DARI IPFS (GATEWAY BERGANTI)
+        // ==============================================
+        async function fetchFromIPFS(cid, path = "") {
+            // 1. Cuba Pinata gateway (paling stabil)
+            const pinataUrl = `${PINATA_GATEWAY}${cid}/${path}?pinataGatewayToken=${PINATA_TOKEN}`;
+            try {
+                let res = await fetch(pinataUrl);
+                if (res.ok) return await res.text();
+            } catch(e) {}
+
+            // 2. Cuba public gateways (fallback)
+            for (let gateway of GATEWAYS) {
+                try {
+                    let url = `${gateway}${cid}/${path}`;
+                    let res = await fetch(url);
+                    if (res.ok) return await res.text();
+                } catch(e) {}
+            }
+            return null;
+        }
+
+        // ==============================================
+        // MAIN - CONTOH BACA KANDUNGAN DARI CID
+        // ==============================================
+        async function load() {
+            // Contoh CID (gantikan dengan CID awak)
+            const CID = "bafkreihm4b7qpi5tqys4cenpxumivz75ozymowkxdkstagmobtyii2kmma";  // <-- TUKAR SINI
+
+            const content = await fetchFromIPFS(CID, "index.html");
+            
+            if (content) {
+                // Jika content adalah HTML, render terus
+                if (content.includes("<!DOCTYPE html") || content.includes("<html")) {
+                    document.open();
+                    document.write(content);
+                    document.close();
+                } else {
+                    document.getElementById('app').innerHTML = `<pre>${escapeHtml(content)}</pre>`;
+                }
+            } else {
+                document.getElementById('app').innerHTML = `<p class="error">❌ CID tidak boleh diakses melalui mana-mana gateway.</p>`;
+            }
+        }
+
+        function escapeHtml(text) {
+            let div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        load();
+    </script>
+</body>
+</html>
