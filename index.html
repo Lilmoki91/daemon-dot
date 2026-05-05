@@ -2,99 +2,84 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>CID Platform - Multi Format</title>
+    <title>ICA - IPFS Controller Access</title>
+    <style>
+        body { background: #0a0c10; color: #e0e0e0; font-family: monospace; padding: 2rem; }
+        .success { color: #10b981; }
+        .error { color: #f87171; }
+        pre { background: #1e293b; padding: 1rem; overflow-x: auto; border-radius: 12px; }
+    </style>
 </head>
 <body>
-    <div id="out"></div>
+    <div id="app">⟳ ICA Gateway Active...</div>
 
     <script>
-        const GATEWAY = "https://ipfs.io/ipfs/";
-        
-        const files = [
-            "cid-html.txt", "cid-css.txt", "cid-js.txt", "cid-json.txt",
-            "cid-python.txt", "cid-go.txt", "cid-pdf.txt", "cid-txt.txt",
-            "cid-png.txt", "cid-jpg.txt", "cid-wav.txt", "cid-ogg.txt"
+        // ==============================================
+        // KONFIGURASI GATEWAY (MULTI-GATEWAY)
+        // ==============================================
+        const GATEWAYS = [
+            "https://dweb.link/ipfs/",
+            "https://cf-ipfs.com/ipfs/",
+            "https://ipfs.io/ipfs/"
         ];
-        
-        async function load() {
-            let html = '';
-            
-            for (let f of files) {
+
+        // ==============================================
+        // PINATA DEDICATED GATEWAY (DENGAN TOKEN)
+        // ==============================================
+        const PINATA_GATEWAY = "https://black-fancy-cod-154.mypinata.cloud/ipfs/";
+        const PINATA_TOKEN = "-K-dkPXY7jYEIWA8AowY0N4mlio8Pmt1tyzJtlAHZXi6dvMn_MOSzJKwwVPG-Geh";
+
+        // ==============================================
+        // FUNGSI BACA DARI IPFS (GATEWAY BERGANTI)
+        // ==============================================
+        async function fetchFromIPFS(cid, path = "") {
+            // 1. Cuba Pinata gateway (paling stabil)
+            const pinataUrl = `${PINATA_GATEWAY}${cid}/${path}?pinataGatewayToken=${PINATA_TOKEN}`;
+            try {
+                let res = await fetch(pinataUrl);
+                if (res.ok) return await res.text();
+            } catch(e) {}
+
+            // 2. Cuba public gateways (fallback)
+            for (let gateway of GATEWAYS) {
                 try {
-                    let r = await fetch(f + '?t=' + Date.now());
-                    if (!r.ok) continue;
-                    
-                    let cid = (await r.text()).trim();
-                    if (!cid) continue;
-                    
-                    let url = GATEWAY + cid;
-                    
-                    // 1. HTML - RENDER terus
-                    if (f === 'cid-html.txt') {
-                        let res = await fetch(url);
-                        let content = await res.text();
-                        document.open();
-                        document.write(content);
-                        document.close();
-                        return;
-                    }
-                    
-                    // 2. CSS
-                    if (f === 'cid-css.txt') {
-                        let res = await fetch(url);
-                        let css = await res.text();
-                        let style = document.createElement('style');
-                        style.textContent = css;
-                        document.head.appendChild(style);
-                        html += `<div><h3>✅ CSS loaded</h3></div>`;
-                        continue;
-                    }
-                    
-                    // 3. JavaScript
-                    if (f === 'cid-js.txt') {
-                        let res = await fetch(url);
-                        let js = await res.text();
-                        let script = document.createElement('script');
-                        script.textContent = js;
-                        document.body.appendChild(script);
-                        html += `<div><h3>✅ JavaScript loaded</h3></div>`;
-                        continue;
-                    }
-                    
-                    // 4. Gambar (PNG, JPG)
-                    if (f.includes('png') || f.includes('jpg')) {
-                        html += `<div><h3>${f}</h3><img src="${url}" style="max-width:100%"></div>`;
-                        continue;
-                    }
-                    
-                    // 5. Audio (WAV, OGG)
-                    if (f.includes('wav') || f.includes('ogg')) {
-                        html += `<div><h3>${f}</h3><audio controls src="${url}"></audio></div>`;
-                        continue;
-                    }
-                    
-                    // 6. Lain-lain (JSON, Python, Go, PDF, TXT) - papar sebagai teks
+                    let url = `${gateway}${cid}/${path}`;
                     let res = await fetch(url);
-                    let content = await res.text();
-                    html += `<div style="border:1px solid #ccc; margin:20px 0; padding:10px;">
-                        <h3>${f}</h3>
-                        <pre>${escapeHtml(content)}</pre>
-                    </div>`;
-                    
-                } catch(e) {
-                    html += `<div><h3>${f}</h3><p>Error: ${e.message}</p></div>`;
-                }
+                    if (res.ok) return await res.text();
+                } catch(e) {}
             }
-            
-            document.getElementById('out').innerHTML = html || '<p>Tiada CID.</p>';
+            return null;
         }
-        
+
+        // ==============================================
+        // MAIN - CONTOH BACA KANDUNGAN DARI CID
+        // ==============================================
+        async function load() {
+            // Contoh CID (gantikan dengan CID awak)
+            const CID = "bafkreihm4b7qpi5tqys4cenpxumivz75ozymowkxdkstagmobtyii2kmma";  // <-- TUKAR SINI
+
+            const content = await fetchFromIPFS(CID, "index.html");
+            
+            if (content) {
+                // Jika content adalah HTML, render terus
+                if (content.includes("<!DOCTYPE html") || content.includes("<html")) {
+                    document.open();
+                    document.write(content);
+                    document.close();
+                } else {
+                    document.getElementById('app').innerHTML = `<pre>${escapeHtml(content)}</pre>`;
+                }
+            } else {
+                document.getElementById('app').innerHTML = `<p class="error">❌ CID tidak boleh diakses melalui mana-mana gateway.</p>`;
+            }
+        }
+
         function escapeHtml(text) {
             let div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
+
         load();
     </script>
 </body>
