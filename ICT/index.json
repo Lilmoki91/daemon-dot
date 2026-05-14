@@ -1,1 +1,10 @@
-
+[
+  {
+    "did": "did:Hadamard-Quantum_did:5UKsMzKGT4mMwyUdeE5poTjt",
+    "telegram_id": "7348614053",
+    "phone_hash": "d5800cc147140413b87e1d519e0d7646cc1c1b5f1c22f270e720df407b74abc8",
+    "phrase_hash": "34e4424a05bf997104b458238b9c6c48c567b0fb1efbe5337e105f3fe53938fa",
+    "private_cid": "QmfWk3zByRrE15T2d7PNLkkzoRpzkT6hn5QXP9ebH5mrti",
+    "data_hash": "cda696f69ec1dcabfe6f43e9f8fb7ebf2517e0b8e1dada5df28a1440966edd0f"
+  }
+]
