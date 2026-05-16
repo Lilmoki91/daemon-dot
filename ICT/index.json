@@ -1,1 +1,10 @@
-
+[
+  {
+    "did": "did:H-qdid:6at2oBLhug2pqKPBV4uqy751",
+    "telegram_id": "7348614053",
+    "phone_hash": "d5800cc147140413b87e1d519e0d7646cc1c1b5f1c22f270e720df407b74abc8",
+    "phrase_hash": "bea9d76d850dc6c4d7ccbce3a2690c66a738fa3b16e992b8c480465d731e2e0e",
+    "private_cid": "QmZD4w3Ts7SgiafFxTKyQryPS8zzTAc1EEDtdk15NNNpXd",
+    "data_hash": "9039042debb0b6ee6020063a50832f3838e62e1f0a0ea78d963c046ed59501fd"
+  }
+]
