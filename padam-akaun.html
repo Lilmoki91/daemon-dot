@@ -66,11 +66,6 @@
             background: rgba(255,255,255,0.1);
             color: var(--text);
         }
-        #telegram-widget {
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
-        }
         #status {
             margin: 15px 0;
             font-size: 14px;
@@ -88,42 +83,12 @@
             margin: 20px 0;
             display: none;
         }
-        .input-group {
-            margin: 15px 0;
-            text-align: left;
-        }
-        .input-group label {
-            display: block;
-            font-size: 13px;
-            color: var(--muted);
-            margin-bottom: 5px;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            background: rgba(0,0,0,0.3);
-            color: var(--text);
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>🗑️ Padam Akaun Q-TOTK</h2>
         <p style="color: #94a3b8; margin: 10px 0;">Untuk pengguna yang terlupa 12 kata frasa</p>
-        
-        <!-- Telegram Login Widget RASMI -->
-        <div id="telegram-widget">
-            <script async 
-                src="https://telegram.org/js/telegram-widget.js?22"
-                data-telegram-login="Hadamard_bot"
-                data-size="large"
-                data-auth-url="https://lilmoki91.github.io/daemon-dot/auth-callback.html"
-                data-request-access="write">
-            </script>
-        </div>
         
         <div class="warning" id="warning-box">
             ⚠️ <strong>AMARAN:</strong> Tindakan ini TIDAK BOLEH DIUNDUR!<br><br>
@@ -134,26 +99,18 @@
 
         <!-- Mesej: Tiada Identiti Kuantum -->
         <div class="no-identity" id="no-identity-box">
-            <h3 style="color: #ffc107;">⚠️ Akaun Telegram Anda Tiada Identiti Kuantum</h3>
+            <h3 style="color: #ffc107;">⚠️ Tiada Identiti Kuantum</h3>
             <p style="color: #ddd;">
-                Akaun Telegram anda <strong>TIDAK</strong> mempunyai ID Quantum Hadamard yang berdaftar dalam sistem Q-TOTK.
+                Akaun Telegram anda <strong>TIDAK</strong> mempunyai ID Quantum Hadamard.
             </p>
             <p style="color: #ddd; margin-top: 10px;">
-                📝 <strong>Apa yang perlu dilakukan:</strong><br>
-                • Gunakan /start di bot untuk mendaftar akaun baru<br>
-                • Jika anda sudah mendaftar sebelum ini, gunakan /recover
+                📝 Gunakan /start di bot @Hadamard_bot untuk mendaftar.
             </p>
         </div>
         
         <div id="status"></div>
-
-        <!-- Input nombor telefon (untuk pengesahan) -->
-        <div class="input-group" id="phone-input-group" style="display: none;">
-            <label>📱 Nombor Telefon (untuk pengesahan akhir)</label>
-            <input type="text" id="phone-input" placeholder="+60123456789">
-        </div>
         
-        <button class="btn btn-delete" id="btn-delete" onclick="confirmDelete()" disabled>
+        <button class="btn btn-delete" id="btn-delete" onclick="deleteAccount()" disabled>
             ✅ YA, PADAM AKAUN SAYA
         </button>
         
@@ -168,97 +125,100 @@
     <script>
         let telegramUser = null;
         let hasQuantumIdentity = false;
-        let verificationInProgress = false;
+
+        // URL indeks GitHub (RAW) — boleh dibaca oleh WebApp
+        const GITHUB_INDEX_URL = "https://raw.githubusercontent.com/Lilmoki91/daemon-dot/refs/heads/main/ICT/index.json";
 
         const tg = window.Telegram.WebApp;
         tg.ready();
         
         async function initWebApp() {
+            // Dapatkan data pengguna dari Telegram WebApp
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 telegramUser = tg.initDataUnsafe.user;
                 
-                document.getElementById('status').className = 'success';
+                document.getElementById('status').className = 'info';
                 document.getElementById('status').textContent = 
-                    `✅ Log masuk sebagai: ${telegramUser.first_name} (ID: ${telegramUser.id})`;
+                    `🔍 Menyemak Identiti Kuantum untuk: ${telegramUser.first_name}...`;
                 
-                document.getElementById('telegram-widget').style.display = 'none';
-                
-                // Semak identiti kuantum
-                await checkQuantumIdentity();
-            }
-        }
-
-        async function checkQuantumIdentity() {
-            if (!telegramUser) return;
-            
-            verificationInProgress = true;
-            document.getElementById('status').className = 'info';
-            document.getElementById('status').textContent = '🔍 Menyemak Identiti Kuantum...';
-            
-            const checkData = {
-                action: "check_identity",
-                telegram_id: String(telegramUser.id)
-            };
-            
-            tg.sendData(JSON.stringify(checkData));
-        }
-
-        window.setIdentityStatus = function(hasIdentity, message) {
-            verificationInProgress = false;
-            hasQuantumIdentity = hasIdentity;
-            
-            if (hasIdentity) {
-                document.getElementById('status').className = 'success';
-                document.getElementById('status').textContent = 
-                    `✅ Identiti Kuantum Ditemui! ${message || ''}`;
-                document.getElementById('btn-delete').disabled = false;
-                document.getElementById('phone-input-group').style.display = 'block';
-                document.getElementById('no-identity-box').style.display = 'none';
-                document.getElementById('warning-box').style.display = 'block';
+                // 🆕 SEMAK TERUS DARI GITHUB INDEX
+                await checkIdentityFromGitHub();
             } else {
                 document.getElementById('status').className = 'error';
                 document.getElementById('status').textContent = 
-                    `❌ ${message || 'Akaun Telegram anda TIADA Identiti Kuantum.'}`;
-                document.getElementById('btn-delete').disabled = true;
-                document.getElementById('phone-input-group').style.display = 'none';
-                document.getElementById('no-identity-box').style.display = 'block';
-                document.getElementById('warning-box').style.display = 'none';
+                    '❌ Gagal mendapatkan data Telegram. Sila buka WebApp dari bot @Hadamard_bot.';
             }
-        };
+        }
 
-        async function confirmDelete() {
-            if (!telegramUser) {
-                alert('❌ Sila log masuk dengan Telegram terlebih dahulu.');
+        async function checkIdentityFromGitHub() {
+            try {
+                const response = await fetch(GITHUB_INDEX_URL);
+                if (!response.ok) {
+                    throw new Error('Gagal muat indeks');
+                }
+                
+                const index = await response.json();
+                
+                // Cari Telegram ID dalam indeks
+                const found = index.find(entry => 
+                    String(entry.telegram_id) === String(telegramUser.id)
+                );
+                
+                if (found) {
+                    hasQuantumIdentity = true;
+                    document.getElementById('status').className = 'success';
+                    document.getElementById('status').textContent = 
+                        `✅ Identiti Kuantum Ditemui! DID: ${found.did?.substring(0, 20)}...`;
+                    document.getElementById('btn-delete').disabled = false;
+                    document.getElementById('btn-delete').textContent = '✅ YA, PADAM AKAUN SAYA';
+                    document.getElementById('no-identity-box').style.display = 'none';
+                    document.getElementById('warning-box').style.display = 'block';
+                } else {
+                    hasQuantumIdentity = false;
+                    document.getElementById('status').className = 'error';
+                    document.getElementById('status').textContent = 
+                        '❌ Akaun Telegram anda TIADA Identiti Kuantum.';
+                    document.getElementById('btn-delete').disabled = true;
+                    document.getElementById('no-identity-box').style.display = 'block';
+                    document.getElementById('warning-box').style.display = 'none';
+                }
+                
+            } catch (error) {
+                document.getElementById('status').className = 'error';
+                document.getElementById('status').textContent = 
+                    '❌ Gagal menyemak identiti. Sila cuba lagi.';
+                console.error('Ralat:', error);
+            }
+        }
+
+        async function deleteAccount() {
+            if (!telegramUser || !hasQuantumIdentity) {
+                alert('❌ Anda tidak mempunyai Identiti Kuantum.');
                 return;
             }
             
-            if (!hasQuantumIdentity) {
-                alert('❌ Akaun Telegram anda tiada Identiti Kuantum. Tidak boleh padam.');
+            if (!confirm('⚠️ AMARAN: Tindakan ini TIDAK BOLEH DIUNDUR! Adakah anda pasti?')) {
                 return;
             }
             
-            const phone = document.getElementById('phone-input').value.trim();
-            
-            if (!phone) {
-                alert('❌ Sila masukkan nombor telefon untuk pengesahan akhir.');
-                return;
-            }
-            
-            if (!confirm('⚠️ AMARAN: Tindakan ini TIDAK BOLEH DIUNDUR! Adakah anda pasti mahu PADAM akaun anda?')) {
-                return;
-            }
-            
+            // Hantar arahan padam ke bot
             const data = {
-                action: "verify_and_delete",
-                telegram_id: String(telegramUser.id),
-                phone_number: phone
+                action: "verify_and_delete_widget",
+                telegram_id: String(telegramUser.id)
             };
+            
+            document.getElementById('status').className = 'info';
+            document.getElementById('status').textContent = '⏳ Menghantar arahan padam ke bot...';
+            document.getElementById('btn-delete').disabled = true;
             
             tg.sendData(JSON.stringify(data));
             
-            document.getElementById('status').className = 'info';
-            document.getElementById('status').textContent = '⏳ Memproses pemadaman... Sila tunggu.';
-            document.getElementById('btn-delete').disabled = true;
+            // Papar mesej menunggu
+            setTimeout(() => {
+                document.getElementById('status').className = 'success';
+                document.getElementById('status').textContent = 
+                    '✅ Arahan padam dihantar! Sila semak bot Telegram untuk pengesahan.';
+            }, 2000);
         }
 
         function cancelDelete() {
