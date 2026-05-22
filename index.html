@@ -9,7 +9,9 @@
             --bg: #1a1a2e;
             --card: #16213e;
             --accent: #e94560;
+            --accent2: #6c63ff;
             --text: #eee;
+            --muted: #94a3b8;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -26,7 +28,7 @@
             background: var(--card);
             border-radius: 16px;
             padding: 30px;
-            max-width: 400px;
+            max-width: 420px;
             width: 100%;
             text-align: center;
         }
@@ -37,6 +39,8 @@
             padding: 15px;
             margin: 20px 0;
             text-align: left;
+            font-size: 14px;
+            line-height: 1.6;
         }
         .btn {
             width: 100%;
@@ -47,10 +51,16 @@
             font-weight: 600;
             cursor: pointer;
             margin: 10px 0;
+            transition: all 0.3s;
         }
         .btn-delete {
             background: var(--accent);
             color: white;
+        }
+        .btn-delete:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
         }
         .btn-cancel {
             background: rgba(255,255,255,0.1);
@@ -64,9 +74,56 @@
         #status {
             margin: 15px 0;
             font-size: 14px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
         }
-        .success { color: #00ff88; }
-        .error { color: #e94560; }
+        .success { color: #00ff88; background: rgba(0, 255, 136, 0.1); display: block; }
+        .error { color: #e94560; background: rgba(233, 69, 96, 0.1); display: block; }
+        .info { color: var(--accent2); background: rgba(108, 99, 255, 0.1); display: block; }
+        
+        .no-identity {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+        .no-identity h3 { color: #ffc107; margin-bottom: 10px; }
+        .no-identity p { color: #ddd; font-size: 14px; line-height: 1.6; }
+
+        .identity-found {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+        .identity-found h3 { color: #00ff88; margin-bottom: 10px; }
+        .identity-found p { color: #ddd; font-size: 14px; line-height: 1.6; }
+
+        .phone-input-group {
+            display: none;
+            margin: 15px 0;
+            text-align: left;
+        }
+        .phone-input-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 5px;
+        }
+        .phone-input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.3);
+            color: var(--text);
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -74,7 +131,7 @@
         <h2>🗑️ Padam Akaun Q-TOTK</h2>
         <p style="color: #94a3b8; margin: 10px 0;">Untuk pengguna yang terlupa 12 kata frasa</p>
         
-        <!-- 🆕 Telegram Login Widget RASMI -->
+        <!-- Telegram Login Widget -->
         <div id="telegram-widget">
             <script async 
                 src="https://telegram.org/js/telegram-widget.js?22"
@@ -85,7 +142,25 @@
             </script>
         </div>
         
-        <div class="warning">
+        <!-- Mesej: Identiti Ditemui -->
+        <div class="identity-found" id="identity-found-box">
+            <h3>✅ Identiti Kuantum Ditemui!</h3>
+            <p>Anda mempunyai akaun Q-TOTK yang sah. Anda boleh memadam akaun anda.</p>
+        </div>
+
+        <!-- Mesej: Tiada Identiti -->
+        <div class="no-identity" id="no-identity-box">
+            <h3>⚠️ Akaun Telegram Anda Tiada Identiti Kuantum</h3>
+            <p>
+                Akaun Telegram anda <strong>TIDAK</strong> mempunyai ID Quantum Hadamard yang berdaftar.
+            </p>
+            <p style="margin-top: 10px;">
+                📝 Gunakan /start di bot @Hadamard_bot untuk mendaftar.
+            </p>
+        </div>
+
+        <!-- Amaran Padam -->
+        <div class="warning" id="warning-box" style="display: none;">
             ⚠️ <strong>AMARAN:</strong> Tindakan ini TIDAK BOLEH DIUNDUR!<br><br>
             • CID anda akan di-unpin dari IPFS<br>
             • Rekod anda akan dipadam dari indeks<br>
@@ -93,6 +168,12 @@
         </div>
         
         <div id="status"></div>
+
+        <!-- Input Nombor Telefon -->
+        <div class="phone-input-group" id="phone-input-group">
+            <label>📱 Masukkan Nombor Telefon Berdaftar</label>
+            <input type="text" id="phone-input" placeholder="+60123456789">
+        </div>
         
         <button class="btn btn-delete" id="btn-delete" onclick="confirmDelete()" disabled>
             ✅ YA, PADAM AKAUN SAYA
@@ -103,26 +184,72 @@
         </button>
     </div>
 
-    <!-- 🆕 Telegram WebApp SDK (untuk dapatkan data pengguna) -->
+    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script>
         let telegramUser = null;
+        let hasQuantumIdentity = false;
 
-        // Inisialisasi Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready();
         
-        // Dapatkan data pengguna dari Telegram WebApp
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            telegramUser = tg.initDataUnsafe.user;
-            document.getElementById('status').innerHTML = 
-                `<p class="success">✅ Log masuk sebagai: ${telegramUser.first_name} (ID: ${telegramUser.id})</p>`;
-            document.getElementById('btn-delete').disabled = false;
-            
-            // Sembunyikan widget login Telegram (kerana sudah auto-login via WebApp)
-            document.getElementById('telegram-widget').style.display = 'none';
+        // Inisialisasi
+        async function initWebApp() {
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                telegramUser = tg.initDataUnsafe.user;
+                
+                document.getElementById('status').className = 'success';
+                document.getElementById('status').textContent = 
+                    `✅ Log masuk sebagai: ${telegramUser.first_name} (ID: ${telegramUser.id})`;
+                
+                document.getElementById('telegram-widget').style.display = 'none';
+                
+                // Semak identiti kuantum
+                await checkQuantumIdentity();
+            }
         }
+
+        // Semak identiti kuantum
+        async function checkQuantumIdentity() {
+            if (!telegramUser) return;
+            
+            document.getElementById('status').className = 'info';
+            document.getElementById('status').textContent = '🔍 Menyemak Identiti Kuantum...';
+            
+            // Hantar permintaan semak ke bot
+            const checkData = {
+                action: "check_identity",
+                telegram_id: String(telegramUser.id)
+            };
+            
+            tg.sendData(JSON.stringify(checkData));
+        }
+
+        // Dipanggil dari bot melalui WebApp API
+        window.setIdentityStatus = function(hasIdentity, message) {
+            hasQuantumIdentity = hasIdentity;
+            
+            if (hasIdentity) {
+                document.getElementById('status').className = 'success';
+                document.getElementById('status').textContent = 
+                    `✅ ${message || 'Identiti Kuantum Ditemui!'}`;
+                document.getElementById('btn-delete').disabled = false;
+                document.getElementById('phone-input-group').style.display = 'block';
+                document.getElementById('identity-found-box').style.display = 'block';
+                document.getElementById('no-identity-box').style.display = 'none';
+                document.getElementById('warning-box').style.display = 'block';
+            } else {
+                document.getElementById('status').className = 'error';
+                document.getElementById('status').textContent = 
+                    `❌ ${message || 'Tiada Identiti Kuantum.'}`;
+                document.getElementById('btn-delete').disabled = true;
+                document.getElementById('no-identity-box').style.display = 'block';
+                document.getElementById('identity-found-box').style.display = 'none';
+                document.getElementById('warning-box').style.display = 'none';
+                document.getElementById('phone-input-group').style.display = 'none';
+            }
+        };
 
         // Fungsi padam akaun
         async function confirmDelete() {
@@ -131,14 +258,19 @@
                 return;
             }
             
-            if (!confirm('⚠️ AMARAN: Tindakan ini TIDAK BOLEH DIUNDUR! Adakah anda pasti mahu PADAM akaun anda?')) {
+            if (!hasQuantumIdentity) {
+                alert('❌ Akaun Telegram anda tiada Identiti Kuantum. Tidak boleh padam.');
                 return;
             }
             
-            const phone = prompt("📱 Sila masukkan nombor telefon anda (contoh: +60123456789):\n\n(Ini diperlukan untuk pengesahan akhir)");
+            const phone = document.getElementById('phone-input').value.trim();
             
             if (!phone) {
-                alert('❌ Nombor telefon diperlukan.');
+                alert('❌ Sila masukkan nombor telefon berdaftar untuk pengesahan akhir.');
+                return;
+            }
+            
+            if (!confirm('⚠️ AMARAN: Tindakan ini TIDAK BOLEH DIUNDUR! Adakah anda pasti?')) {
                 return;
             }
             
@@ -148,18 +280,19 @@
                 phone_number: phone
             };
             
-            // Hantar data ke bot melalui WebApp API
+            // Hantar data ke bot
             tg.sendData(JSON.stringify(data));
             
-            // Papar mesej menunggu
-            document.getElementById('status').innerHTML = 
-                '<p class="success">⏳ Memproses pemadaman... Sila tunggu.</p>';
+            document.getElementById('status').className = 'info';
+            document.getElementById('status').textContent = '⏳ Memproses pemadaman...';
             document.getElementById('btn-delete').disabled = true;
         }
 
         function cancelDelete() {
             tg.close();
         }
+
+        initWebApp();
     </script>
 </body>
 </html>
