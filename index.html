@@ -56,9 +56,10 @@
             background: rgba(255,255,255,0.1);
             color: var(--text);
         }
-        .btn-telegram {
-            background: #0088cc;
-            color: white;
+        #telegram-widget {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
         }
         #status {
             margin: 15px 0;
@@ -73,8 +74,16 @@
         <h2>🗑️ Padam Akaun Q-TOTK</h2>
         <p style="color: #94a3b8; margin: 10px 0;">Untuk pengguna yang terlupa 12 kata frasa</p>
         
-        <!-- Telegram Login Widget -->
-        <div id="telegram-login"></div>
+        <!-- 🆕 Telegram Login Widget RASMI -->
+        <div id="telegram-widget">
+            <script async 
+                src="https://telegram.org/js/telegram-widget.js?22"
+                data-telegram-login="Hadamard_bot"
+                data-size="large"
+                data-auth-url="https://lilmoki91.github.io/daemon-dot/auth-callback.html"
+                data-request-access="write">
+            </script>
+        </div>
         
         <div class="warning">
             ⚠️ <strong>AMARAN:</strong> Tindakan ini TIDAK BOLEH DIUNDUR!<br><br>
@@ -82,10 +91,6 @@
             • Rekod anda akan dipadam dari indeks<br>
             • DID Quantum anda menjadi tidak bermakna
         </div>
-        
-        <button class="btn btn-telegram" onclick="loginWithTelegram()">
-            🔐 Log Masuk dengan Telegram
-        </button>
         
         <div id="status"></div>
         
@@ -98,44 +103,31 @@
         </button>
     </div>
 
+    <!-- 🆕 Telegram WebApp SDK (untuk dapatkan data pengguna) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <script>
         let telegramUser = null;
 
-        // Fungsi login dengan Telegram Widget
-        async function loginWithTelegram() {
-            const status = document.getElementById('status');
-            status.innerHTML = '<p>Memuatkan Telegram Login Widget...</p>';
+        // Inisialisasi Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        
+        // Dapatkan data pengguna dari Telegram WebApp
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            telegramUser = tg.initDataUnsafe.user;
+            document.getElementById('status').innerHTML = 
+                `<p class="success">✅ Log masuk sebagai: ${telegramUser.first_name} (ID: ${telegramUser.id})</p>`;
+            document.getElementById('btn-delete').disabled = false;
             
-            // Guna Telegram WebApp API
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                tg.ready();
-                
-                telegramUser = tg.initDataUnsafe?.user;
-                
-                if (telegramUser) {
-                    status.innerHTML = `<p class="success">✅ Log masuk sebagai: ${telegramUser.first_name} (ID: ${telegramUser.id})</p>`;
-                    document.getElementById('btn-delete').disabled = false;
-                } else {
-                    status.innerHTML = '<p class="error">❌ Gagal dapatkan data Telegram. Sila cuba lagi.</p>';
-                }
-            } else {
-                // Fallback: minta user taip ID Telegram
-                const userId = prompt("Sila masukkan ID Telegram anda:");
-                const phone = prompt("Sila masukkan nombor telefon anda (contoh: +60123456789):");
-                
-                if (userId && phone) {
-                    telegramUser = { id: userId, phone: phone };
-                    status.innerHTML = `<p class="success">✅ Data diterima: ID ${userId}</p>`;
-                    document.getElementById('btn-delete').disabled = false;
-                }
-            }
+            // Sembunyikan widget login Telegram (kerana sudah auto-login via WebApp)
+            document.getElementById('telegram-widget').style.display = 'none';
         }
 
         // Fungsi padam akaun
         async function confirmDelete() {
             if (!telegramUser) {
-                alert('Sila log masuk dengan Telegram terlebih dahulu.');
+                alert('❌ Sila log masuk dengan Telegram terlebih dahulu.');
                 return;
             }
             
@@ -143,7 +135,12 @@
                 return;
             }
             
-            const phone = telegramUser.phone || prompt("Sila masukkan nombor telefon anda (contoh: +60123456789):");
+            const phone = prompt("📱 Sila masukkan nombor telefon anda (contoh: +60123456789):\n\n(Ini diperlukan untuk pengesahan akhir)");
+            
+            if (!phone) {
+                alert('❌ Nombor telefon diperlukan.');
+                return;
+            }
             
             const data = {
                 action: "verify_and_delete",
@@ -152,21 +149,16 @@
             };
             
             // Hantar data ke bot melalui WebApp API
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                tg.sendData(JSON.stringify(data));
-            } else {
-                // Fallback: papar arahan
-                alert('Sila hubungi bot secara manual: /padamakaun');
-            }
+            tg.sendData(JSON.stringify(data));
+            
+            // Papar mesej menunggu
+            document.getElementById('status').innerHTML = 
+                '<p class="success">⏳ Memproses pemadaman... Sila tunggu.</p>';
+            document.getElementById('btn-delete').disabled = true;
         }
 
         function cancelDelete() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                tg.close();
-            }
-            window.close();
+            tg.close();
         }
     </script>
 </body>
