@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Q-TOTK Reset ID</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <h2>🔐 Pengesahan Reset ID Quantum</h2>
+    <p>Sila sahkan identiti anda untuk memadam akaun lama dan mendaftar yang baru.</p>
+    
+    <button onclick="confirmReset()">✅ Sahkan Reset ID</button>
+    
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        
+        function confirmReset() {
+            // Hantar data ke bot
+            tg.sendData(JSON.stringify({
+                action: "reset",
+                telegram_id: tg.initDataUnsafe.user.id.toString(),
+                phone_hash: "HASH_DARI_BOT"  // Akan diisi oleh bot
+            }));
+        }
+    </script>
+</body>
+</html>
