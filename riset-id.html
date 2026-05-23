@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Q-TOTK | Reset ID Quantum</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --card: #1a1b23;
+            --border: #2a2b35;
+            --accent: #6c63ff;
+            --accent-glow: rgba(108, 99, 255, 0.3);
+            --danger: #e94560;
+            --danger-glow: rgba(233, 69, 96, 0.3);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --success: #00ff88;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .widget {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 32px 24px;
+            width: 100%;
+            max-width: 380px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, var(--accent), #8b7fff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 8px 30px var(--accent-glow);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 8px 30px var(--accent-glow); }
+            50% { box-shadow: 0 8px 50px rgba(108, 99, 255, 0.5); }
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent), #8b7fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .info-card {
+            background: rgba(108, 99, 255, 0.05);
+            border: 1px solid rgba(108, 99, 255, 0.15);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .info-card .icon-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .info-card .icon-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-card .icon {
+            font-size: 20px;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .info-card .text {
+            font-size: 0.85rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .info-card .text strong {
+            color: var(--text);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: inherit;
+        }
+
+        .btn-confirm {
+            background: linear-gradient(135deg, var(--danger), #ff6b7a);
+            color: white;
+            box-shadow: 0 8px 25px var(--danger-glow);
+            margin-bottom: 12px;
+        }
+
+        .btn-confirm:active {
+            transform: scale(0.97);
+            box-shadow: 0 4px 15px var(--danger-glow);
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .btn-cancel:active {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            opacity: 0.7;
+        }
+
+        .footer span {
+            color: var(--accent);
+        }
+
+        /* Loading State */
+        .btn .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .btn.loading .spinner {
+            display: inline-block;
+        }
+
+        .btn.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Particle Background */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: var(--accent);
+            border-radius: 50%;
+            opacity: 0.1;
+            animation: float 6s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-30px) rotate(90deg); }
+            50% { transform: translateY(-15px) rotate(180deg); }
+            75% { transform: translateY(-40px) rotate(270deg); }
+        }
+
+        /* Success State */
+        .success-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 17, 23, 0.95);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .success-overlay.active {
+            display: flex;
+        }
+
+        .success-icon {
+            font-size: 80px;
+            animation: bounceIn 0.6s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .success-text {
+            color: var(--success);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Background -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Widget Utama -->
+    <div class="widget" id="main-widget">
+        <div class="logo">⚛️</div>
+        <h2>Reset ID Quantum</h2>
+        <p class="subtitle">
+            Padam akaun lama & daftar akaun baru dengan DID Quantum Hadamard yang baharu.
+        </p>
+
+        <div class="info-card">
+            <div class="icon-row">
+                <span class="icon">🗑️</span>
+                <span class="text">
+                    <strong>Akaun Lama</strong><br>
+                    Akan dimusnahkan. CID di-unpin dari IPFS. DID lama menjadi tidak bermakna.
+                </span>
+            </div>
+            <div class="icon-row">
+                <span class="icon">🆔</span>
+                <span class="text">
+                    <strong>Akaun Baru</strong><br>
+                    DID Quantum baru dijana. Frasa pemulihan baru diterbitkan.
+                </span>
+            </div>
+            <div class="icon-row">
+                <span class="icon">⚠️</span>
+                <span class="text">
+                    <strong>Tindakan Tidak Boleh Diundur</strong><br>
+                    Pastikan anda telah menyimpan sebarang data penting sebelum meneruskan.
+                </span>
+            </div>
+        </div>
+
+        <button class="btn btn-confirm" id="confirm-btn" onclick="confirmReset()">
+            <span class="btn-text">🗑️ Sahkan Reset ID Quantum</span>
+            <span class="spinner"></span>
+        </button>
+
+        <button class="btn btn-cancel" onclick="cancelReset()">
+            ❌ Batal
+        </button>
+
+        <div class="footer">
+            Dilindungi oleh <span>Q-TOTK</span> | Proof of Harmony ⚛️
+        </div>
+    </div>
+
+    <!-- Success Overlay -->
+    <div class="success-overlay" id="success-overlay">
+        <div class="success-icon">✅</div>
+        <div class="success-text">Reset ID Berjaya!</div>
+        <p style="color: var(--muted); margin-top: 8px;">Akaun baru telah didaftarkan.</p>
+    </div>
+
+    <script>
+        // ============================================
+        // PARTICLE BACKGROUND
+        // ============================================
+        (function createParticles() {
+            const container = document.getElementById('particles');
+            const colors = ['#6c63ff', '#8b7fff', '#e94560', '#00ff88'];
+            
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = (Math.random() * 4 + 2) + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.animationDelay = (Math.random() * 6) + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                container.appendChild(particle);
+            }
+        })();
+
+        // ============================================
+        // TELEGRAM WEBAPP
+        // ============================================
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        
+        // Set warna tema ikut Telegram
+        tg.setHeaderColor('#0f1117');
+        tg.setBackgroundColor('#0f1117');
+        tg.expand();
+
+        // Dapatkan parameter dari URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const uid = urlParams.get('uid') || tg.initDataUnsafe?.user?.id?.toString() || '';
+        const action = urlParams.get('action') || 'reset';
+
+        function confirmReset() {
+    const btn = document.getElementById('confirm-btn');
+    btn.classList.add('loading');
+    
+    setTimeout(() => {
+        // Hantar data ringkas ke bot
+        tg.sendData(JSON.stringify({
+            action: "reset",
+            telegram_id: tg.initDataUnsafe?.user?.id?.toString() || uid,
+            timestamp: Date.now()
+        }));
+        
+        document.getElementById('success-overlay').classList.add('active');
+        
+        setTimeout(() => {
+            tg.close();
+        }, 2000);
+    }, 1500);
+}
+
+        function cancelReset() {
+            tg.sendData(JSON.stringify({
+                action: "cancel",
+                telegram_id: uid
+            }));
+            tg.close();
+        }
+
+        // Handle back button
+        tg.BackButton.onClick(() => {
+            cancelReset();
+        });
+    </script>
+</body>
+</html>
