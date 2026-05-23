@@ -360,27 +360,24 @@
         const action = urlParams.get('action') || 'reset';
 
         function confirmReset() {
-            const btn = document.getElementById('confirm-btn');
-            btn.classList.add('loading');
-            
-            // Simulasi pemprosesan (beri masa untuk animasi)
-            setTimeout(() => {
-                // Hantar data ke bot
-                tg.sendData(JSON.stringify({
-                    action: action,
-                    telegram_id: uid,
-                    timestamp: Date.now()
-                }));
-                
-                // Papar success
-                document.getElementById('success-overlay').classList.add('active');
-                
-                // Tutup widget selepas 2 saat
-                setTimeout(() => {
-                    tg.close();
-                }, 2000);
-            }, 1500);
-        }
+    const btn = document.getElementById('confirm-btn');
+    btn.classList.add('loading');
+    
+    setTimeout(() => {
+        // Hantar initData Telegram (tandatangan kriptografi)
+        tg.sendData(JSON.stringify({
+            action: action,
+            initData: tg.initData,  // ← Bukti sah dari Telegram
+            timestamp: Date.now()
+        }));
+        
+        document.getElementById('success-overlay').classList.add('active');
+        
+        setTimeout(() => {
+            tg.close();
+        }, 2000);
+    }, 1500);
+}
 
         function cancelReset() {
             tg.sendData(JSON.stringify({
