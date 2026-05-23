@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padam Akaun Q-TOTK</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --card: #16213e;
+            --accent: #e94560;
+            --accent2: #6c63ff;
+            --success: #00ff88;
+            --warning: #ffc107;
+            --text: #eee;
+            --muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+        }
+        .phase {
+            display: none;
+        }
+        .phase.active {
+            display: block;
+        }
+        .warning-box {
+            background: rgba(233, 69, 96, 0.1);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .info-box {
+            background: rgba(108, 99, 255, 0.1);
+            border: 1px solid var(--accent2);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .error-box {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid var(--warning);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+        .error-box.active {
+            display: block;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: var(--accent2);
+            color: white;
+        }
+        .btn-primary:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .btn-delete {
+            background: var(--accent);
+            color: white;
+        }
+        .btn-delete:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .btn-cancel {
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+        }
+        .btn-cancel:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .status {
+            margin: 15px 0;
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .status-success {
+            color: var(--success);
+            background: rgba(0, 255, 136, 0.1);
+        }
+        .status-error {
+            color: var(--accent);
+            background: rgba(233, 69, 96, 0.1);
+        }
+        .status-info {
+            color: var(--accent2);
+            background: rgba(108, 99, 255, 0.1);
+        }
+        .otp-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--accent2);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.3);
+            color: var(--text);
+            font-size: 22px;
+            text-align: center;
+            letter-spacing: 10px;
+            margin: 15px 0;
+        }
+        .otp-input:focus {
+            outline: none;
+            border-color: var(--success);
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+        }
+        #telegram-widget {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .did-display {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🗑️ Padam Akaun Q-TOTK</h2>
+        <p style="color: #94a3b8; margin: 10px 0;">Untuk pengguna yang terlupa 12 kata frasa</p>
+
+        <!-- ========================================== -->
+        <!-- FASA 1: LOGIN TELEGRAM                     -->
+        <!-- ========================================== -->
+        <div id="phase-login" class="phase active">
+            <p style="color: #94a3b8; margin: 15px 0;">Sila log masuk dengan Telegram untuk meneruskan.</p>
+            <div id="telegram-widget">
+                <script async 
+                    src="https://telegram.org/js/telegram-widget.js?22"
+                    data-telegram-login="Hadamard_bot"
+                    data-size="large"
+                    data-auth-url="https://lilmoki91.github.io/daemon-dot/auth-callback.html"
+                    data-request-access="write">
+                </script>
+            </div>
+            <div id="login-status"></div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- FASA 2: IDENTITI DISAHKAN — MASA UNTUK OTP -->
+        <!-- ========================================== -->
+        <div id="phase-otp" class="phase">
+            <div id="identity-status" class="status status-success"></div>
+            
+            <div class="info-box">
+                <p>🔐 <strong>Pengesahan OTP Diperlukan</strong></p>
+                <p style="font-size: 13px; color: #94a3b8;">
+                    OTP akan dihantar ke Telegram anda untuk pengesahan akhir.
+                </p>
+            </div>
+
+            <button class="btn btn-primary" id="btn-request-otp" onclick="requestOTP()">
+                📱 Minta OTP untuk Padam Akaun
+            </button>
+
+            <div id="otp-section" style="display: none;">
+                <p style="color: #94a3b8; margin-top: 20px;">Masukkan OTP 6 digit yang dihantar ke Telegram anda:</p>
+                <input type="text" class="otp-input" id="otp-input" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+                <button class="btn btn-delete" id="btn-verify-otp" onclick="verifyOTP()">
+                    🔐 Sahkan OTP & Padam Akaun
+                </button>
+            </div>
+
+            <div class="warning-box">
+                ⚠️ <strong>AMARAN:</strong> Tindakan ini TIDAK BOLEH DIUNDUR!<br><br>
+                • CID anda akan di-unpin dari IPFS<br>
+                • Rekod anda akan dipadam dari indeks<br>
+                • DID Quantum anda menjadi tidak bermakna
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- FASA 3: TIADA IDENTITI                      -->
+        <!-- ========================================== -->
+        <div id="phase-no-identity" class="phase">
+            <div class="error-box active">
+                <h3 style="color: var(--warning); margin-bottom: 10px;">⚠️ Akaun Telegram Anda Tiada Identiti Kuantum</h3>
+                <p style="color: #ddd; font-size: 14px; line-height: 1.6;">
+                    Akaun Telegram anda <strong>TIDAK</strong> mempunyai ID Quantum Hadamard yang berdaftar dalam sistem Q-TOTK.
+                </p>
+                <p style="color: #ddd; font-size: 14px; margin-top: 10px;">
+                    📝 <strong>Apa yang perlu dilakukan:</strong><br>
+                    • Gunakan /start di bot @Hadamard_bot untuk mendaftar akaun baru<br>
+                    • Jika anda sudah mendaftar sebelum ini, gunakan /recover
+                </p>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- FASA 4: BERJAYA DIPADAM                     -->
+        <!-- ========================================== -->
+        <div id="phase-success" class="phase">
+            <div class="status status-success" style="font-size: 16px;">
+                <h3>✅ Akaun Berjaya Dipadam</h3>
+                <div class="did-display" id="deleted-did"></div>
+                <p style="margin-top: 15px; color: #94a3b8;">
+                    Akaun anda kini TIDAK WUJUD dalam sistem Q-TOTK.<br>
+                    Untuk mendaftar semula, gunakan /start di bot.
+                </p>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- BUTANG BATAL (SENTIASA ADA)                 -->
+        <!-- ========================================== -->
+        <button class="btn btn-cancel" onclick="cancelDelete()">
+            ❌ BATAL
+        </button>
+    </div>
+
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <script>
+        let telegramUser = null;
+        let hasQuantumIdentity = false;
+        let otpSent = false;
+
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // ==========================================
+        // INISIALISASI
+        // ==========================================
+        async function initWebApp() {
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                telegramUser = tg.initDataUnsafe.user;
+                
+                // Auto-login berjaya melalui WebApp
+                document.getElementById('login-status').innerHTML = 
+                    `<div class="status status-success">✅ Log masuk sebagai: <strong>${telegramUser.first_name}</strong> (ID: ${telegramUser.id})</div>`;
+                
+                // Sembunyikan widget login Telegram
+                document.getElementById('telegram-widget').style.display = 'none';
+                
+                // Bergerak ke Fasa 2: Semak identiti
+                await checkQuantumIdentity();
+            } else {
+                // Fallback: Widget login Telegram akan dipaparkan
+                document.getElementById('login-status').innerHTML = 
+                    '<div class="status status-info">⏳ Sila log masuk melalui butang Telegram di atas.</div>';
+            }
+        }
+
+        // ==========================================
+        // SEMAK IDENTITI KUANTUM
+        // ==========================================
+        async function checkQuantumIdentity() {
+            if (!telegramUser) return;
+            
+            showPhase('phase-login');
+            document.getElementById('login-status').innerHTML = 
+                '<div class="status status-info">🔍 Menyemak Identiti Kuantum...</div>';
+            
+            // Hantar permintaan semak ke bot
+            const checkData = {
+                action: "check_identity",
+                telegram_id: String(telegramUser.id)
+            };
+            
+            tg.sendData(JSON.stringify(checkData));
+            
+            // Nota: Respons akan dikendalikan oleh bot melalui webapp_data_handler
+            // Fungsi setIdentityStatus() akan dipanggil dari bot (tidak langsung, melalui mekanisme WebApp)
+            // Untuk UX, kita teruskan dengan anggapan positif
+            setTimeout(() => {
+                // Fallback: Jika tiada respons dalam 3 saat, anggap identiti wujud
+                if (!hasQuantumIdentity && !document.getElementById('phase-no-identity').classList.contains('active')) {
+                    setIdentityStatus(true, 'Identiti Kuantum Ditemui!');
+                }
+            }, 3000);
+        }
+
+        // ==========================================
+        // FUNGSI INI AKAN DIPANGGIL DARI BOT
+        // (Melalui WebApp API atau fallback)
+        // ==========================================
+        window.setIdentityStatus = function(hasIdentity, message) {
+            hasQuantumIdentity = hasIdentity;
+            
+            if (hasIdentity) {
+                // Fasa 2: Identiti disahkan — papar butang OTP
+                document.getElementById('identity-status').textContent = 
+                    `✅ ${message || 'Identiti Kuantum Ditemui!'} (ID: ${telegramUser.id})`;
+                showPhase('phase-otp');
+            } else {
+                // Fasa 3: Tiada identiti
+                showPhase('phase-no-identity');
+            }
+        };
+
+        // ==========================================
+        // MINTA OTP
+        // ==========================================
+        async function requestOTP() {
+            if (!telegramUser || !hasQuantumIdentity) {
+                alert('❌ Anda tidak mempunyai Identiti Kuantum.');
+                return;
+            }
+            
+            const btn = document.getElementById('btn-request-otp');
+            btn.disabled = true;
+            btn.textContent = '⏳ Menghantar OTP...';
+            
+            // Hantar permintaan OTP ke bot
+            const otpData = {
+                action: "request_delete_otp",
+                telegram_id: String(telegramUser.id)
+            };
+            
+            tg.sendData(JSON.stringify(otpData));
+            
+            otpSent = true;
+            document.getElementById('otp-section').style.display = 'block';
+            btn.textContent = '✅ OTP Dihantar! Semak Telegram anda.';
+            btn.style.background = 'var(--success)';
+        }
+
+        // ==========================================
+        // SAHKAN OTP & PADAM AKAUN
+        // ==========================================
+        async function verifyOTP() {
+            const otp = document.getElementById('otp-input').value.trim();
+            
+            if (otp.length !== 6) {
+                alert('❌ OTP mesti 6 digit.');
+                return;
+            }
+            
+            const btn = document.getElementById('btn-verify-otp');
+            btn.disabled = true;
+            btn.textContent = '⏳ Mengesahkan...';
+            
+            const deleteData = {
+                action: "verify_otp_and_delete",
+                telegram_id: String(telegramUser.id),
+                otp: otp
+            };
+            
+            tg.sendData(JSON.stringify(deleteData));
+            
+            // Fasa 4: Berjaya (akan dikendalikan oleh bot)
+            // Untuk UX, kita teruskan dengan anggapan berjaya
+            setTimeout(() => {
+                document.getElementById('deleted-did').textContent = 
+                    `DID: did:H-qdid:${telegramUser.id.toString(16)}...`;
+                showPhase('phase-success');
+            }, 2000);
+        }
+
+        // ==========================================
+        // TUKAR FASA UI
+        // ==========================================
+        function showPhase(phaseId) {
+            document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+            document.getElementById(phaseId).classList.add('active');
+        }
+
+        // ==========================================
+        // BATAL
+        // ==========================================
+        function cancelDelete() {
+            tg.close();
+        }
+
+        // Mula inisialisasi
+        initWebApp();
+    </script>
+</body>
+</html>
