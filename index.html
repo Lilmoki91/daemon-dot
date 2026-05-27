@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚛️ Schrödinger Hash Portal</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0a0c10 0%, #0f111a 100%);
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(15, 17, 26, 0.95);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #1f293d;
+            box-shadow: 0 0 40px rgba(0, 255, 100, 0.1);
+        }
+        h1 { text-align: center; margin-bottom: 5px; color: #00ff66; text-shadow: 0 0 10px rgba(0,255,108,0.3); }
+        .subtitle { text-align: center; color: #64748b; margin-bottom: 25px; font-size: 13px; }
+        .quantum-box {
+            background: #05070a; border-radius: 12px; padding: 20px;
+            margin-bottom: 20px; border: 1px solid #00ff66;
+        }
+        .qubit-line { display: flex; justify-content: space-between; margin: 6px 0; font-size: 13px; }
+        .gate { color: #00ff66; }
+        .result-box { background: #090d16; border-radius: 8px; padding: 15px; margin: 15px 0; border-left: 4px solid #00ff66; }
+        .label { color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 5px; }
+        .value { font-size: 18px; font-weight: bold; word-break: break-all; }
+        .nonce-val { color: #00ff66; }
+        .hash-val { color: #a78bfa; }
+        button {
+            background: linear-gradient(135deg, #00ff66 0%, #009933 100%);
+            border: none; color: #05070a; padding: 14px; border-radius: 8px;
+            font-size: 16px; font-weight: bold; cursor: pointer; width: 100%;
+            margin-top: 10px; transition: all 0.2s;
+        }
+        button:hover { transform: translateY(-1px); box-shadow: 0 0 15px rgba(0,255,108,0.4); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+        .telegram-zone { display: flex; justify-content: center; margin: 20px 0; }
+        .status { text-align: center; padding: 12px; border-radius: 6px; margin-top: 15px; font-size: 13px; display: none; }
+        .success { background: rgba(0, 255, 102, 0.1); border: 1px solid #00ff66; color: #00ff66; }
+        .info { background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; color: #60a5fa; }
+        footer { text-align: center; margin-top: 25px; font-size: 11px; color: #475569; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚛️ SCHRÖDINGER HASH</h1>
+    <div class="subtitle">Deterministic Quantum State Handshake Interface</div>
+    
+    <div class="quantum-box">
+        <div class="qubit-line"><span>Q0 ─H─⊕─ Q1</span><span class="gate">[𝚽+ Entangled]</span></div>
+        <div class="qubit-line"><span>Q2 ─H─⊕─ Q3</span><span class="gate">[𝚽+ Entangled]</span></div>
+        <div class="qubit-line"><span>Q4 ─H─⊕─ Q5</span><span class="gate">[𝚽+ Entangled]</span></div>
+        <div class="qubit-line"><span>Q6 ─H─⊕─ Q7</span><span class="gate">[𝚽+ Entangled]</span></div>
+    </div>
+    
+    <div class="telegram-zone">
+        <script async src="https://telegram.org/js/telegram-widget.js?22"
+            data-telegram-login="Hadamard_bot"
+            data-size="large"
+            data-onauth="onTelegramAuth(user)"
+            data-request-access="write">
+        </script>
+    </div>
+    
+    <button id="generateBtn" onclick="generateQuantumHash()" disabled>JANA SCHRÖDINGER HASH</button>
+    
+    <div id="resultArea" style="display: none;">
+        <div class="result-box">
+            <div class="label">⚛️ Quantum Nonce (Bell State Collapse)</div>
+            <div class="value nonce-val" id="quantumNonce">-</div>
+        </div>
+        <div class="result-box">
+            <div class="label">🔐 SHA-256 Hash Sesi</div>
+            <div class="value hash-val" id="hashValue">-</div>
+        </div>
+        <div class="result-box">
+            <div class="label">⏳ ID Blok Masa (Challenge)</div>
+            <div class="value" id="timeBlock">-</div>
+        </div>
+        
+        <button id="verifyBtn" onclick="verifyWithBot()" style="background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); color: white;">
+            🔗 HUBUNGKAN ENTANGLEMENT KE BOT
+        </button>
+    </div>
+    
+    <div id="statusBox" class="status"></div>
+    
+    <footer>
+        Schrödinger Hash • Sinkronisasi Kebarangkalian Tanpa Transmisi Kunci
+    </footer>
+</div>
+
+<script>
+let currentUser = null;
+let currentHash = null;
+
+// Enjin Kriptografi SHA-256 Web Standard
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);                    
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+class SchrödingerEngine {
+    // Menjana keadaan runtuhan qubit berpandukan jajaran entropy benih
+    static async measureBellStates(seedHex, timeChallenge) {
+        const entropy = await sha256(seedHex + timeChallenge);
+        let nonceBits = "";
+        
+        // Membina 4 pasang litar Bell State terikat (8 Qubit)
+        for (let i = 0; i < 4; i++) {
+            let code = entropy.charCodeAt(i);
+            // Ambil keputusan superposisi qubit kawalan (Hadamard collapse)
+            let controlQubit = (code % 2 === 0) ? "0" : "1";
+            // Get CNOT mengikat target qubit secara mutlak dengan control qubit (|00⟩ atau |11⟩)
+            nonceBits += controlQubit + controlQubit;
+        }
+        return nonceBits;
+    }
+
+    static async generateHash(seedHex, timeChallenge) {
+        const quantumNonce = await this.measureBellStates(seedHex, timeChallenge);
+        // Aturan penyatuan input: SEED + CHALLENGE + QUANTUM_NONCE
+        const combined = seedHex + timeChallenge + quantumNonce;
+        const fullHash = await sha256(combined);
+        
+        return {
+            nonce: quantumNonce,
+            hashHex: fullHash.slice(0, 8).toUpperCase() // Ambil 8 digit unik pertama
+        };
+    }
+}
+
+async function onTelegramAuth(user) {
+    // Bina Seed Hex berasaskan SHA-256 daripada Telegram ID secara deterministik
+    currentUser = {
+        id: user.id,
+        seed: await sha256(user.id.toString())
+    };
+    
+    document.getElementById('generateBtn').disabled = false;
+    showStatus(`Akaun @${user.username} dikesan. Sila klik butang penjanaan di bawah.`, 'success');
+}
+
+async function generateQuantumHash() {
+    if (!currentUser) return;
+    
+    // Blok masa standard global (Tetingkap sepadan 30 saat)
+    const timeWindow = Math.floor(Date.now() / 30000).toString();
+    
+    const result = await SchrödingerEngine.generateHash(currentUser.seed, timeWindow);
+    currentHash = result.hashHex;
+    
+    document.getElementById('resultArea').style.display = 'block';
+    document.getElementById('quantumNonce').innerText = result.nonce;
+    document.getElementById('hashValue').innerText = result.hashHex;
+    document.getElementById('timeBlock').innerText = timeWindow;
+    
+    showStatus("Status kuantum sedia diunjurkan. Klik butang ungu di bawah untuk pengesahan bot.", 'success');
+}
+
+function verifyWithBot() {
+    if (!currentHash) return;
+    // Hantar terus melalui parameter start deeplink Telegram
+    const botUrl = `https://t.me/Hadamard_bot?start=${currentHash}`;
+    window.open(botUrl, '_blank');
+}
+
+function showStatus(msg, type) {
+    const box = document.getElementById('statusBox');
+    box.style.display = 'block';
+    box.className = `status ${type}`;
+    box.innerText = msg;
+}
+</script>
+</body>
+</html>
